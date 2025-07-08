@@ -10,5 +10,5 @@ customHeaders:
       - key: 'X-Content-Type-Options'
         value: 'nosniff'
       - key: 'Content-Security-Policy'
-        value: "frame-ancestors 'self' https://ccaas-coe-sandbox.my.connect.aws/ccp-v2 https://main.d2swmh9l5k7i9e.amplifyapp.com"
+        value: "frame-ancestors 'self' https://ccaas-coe-sandbox.my.connect.aws https://main.d2swmh9l5k7i9e.amplifyapp.com"
         
