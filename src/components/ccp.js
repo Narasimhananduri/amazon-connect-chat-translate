@@ -243,7 +243,7 @@ Amplify.configure(awsconfig);
 const Ccp = () => {
   const [languageTranslate] = useGlobalState('languageTranslate');
   const [Chats] = useGlobalState('Chats');
-  const [lang, setLang] = useState("");
+  const [lang, setLang] = useState('');
   const [currentContactId] = useGlobalState('currentContactId');
   const [languageOptions] = useGlobalState('languageOptions');
   const [agentChatSessionState, setAgentChatSessionState] = useState([]);
@@ -261,7 +261,7 @@ const Ccp = () => {
     }
 
     if (localLanguageTranslate.length === 0 || textLang === '') {
-      let tempLang = await detectText(content);
+      const tempLang = await detectText(content);
       textLang = tempLang.textInterpretation.language;
     }
 
@@ -274,18 +274,19 @@ const Ccp = () => {
     upsert(languageTranslate, { contactId, lang: textLang });
     setLanguageTranslate(languageTranslate);
 
-    let translatedMessage = await translateText(content, textLang, 'en');
+    const translatedMessage = await translateText(content, textLang, 'en');
 
-    let data2 = {
+    const data2 = {
       contactId,
       username: 'customer',
       content: <p>{content}</p>,
       translatedMessage: <p>{translatedMessage}</p>
     };
+
     addChat(prevMsg => [...prevMsg, data2]);
   }
 
-  // 🔁 Subscribe to chat events
+  // 🔁 Subscribe to chat message events
   function getEvents(contact, agentChatSession) {
     contact.getAgentConnection().getMediaController().then(controller => {
       controller.onMessage(messageData => {
@@ -299,39 +300,57 @@ const Ccp = () => {
     });
   }
 
-  // 🔁 Subscribe to Connect Contact & Agent Events
+  // 🔁 Subscribe to Connect Events (Safe version)
   function subscribeConnectEvents() {
-    window.connect.core.onViewContact(function (event) {
-      var contactId = event.contactId;
-      console.log("onViewContact", contactId);
-      setCurrentContactId(contactId);
-    });
+    // ✅ SAFE GUARD: check if onViewContact is available
+    if (window.connect?.core?.onViewContact) {
+      window.connect.core.onViewContact(event => {
+        const contactId = event.contactId;
+        console.log("onViewContact", contactId);
+        setCurrentContactId(contactId);
+      });
+    } else {
+      console.log("connect.core.onViewContact not available.");
+    }
 
-    if (window.connect.ChatSession) {
+    // 🔁 Contact events (chat sessions)
+    if (window.connect?.ChatSession) {
       window.connect.contact(contact => {
         contact.onConnecting(() => {
           console.log("onConnecting", contact.contactId);
-          console.log("contactAttributes", JSON.stringify(contact.getAttributes()));
+          console.log("Attributes:", JSON.stringify(contact.getAttributes()));
         });
 
         contact.onAccepted(async () => {
-          console.log("onAccepted", contact);
-          const cnn = contact.getConnections().find(cnn => cnn.getType() === window.connect.ConnectionType.AGENT);
+          const cnn = contact.getConnections().find(
+            cnn => cnn.getType() === window.connect.ConnectionType.AGENT
+          );
           const agentChatSession = await cnn.getMediaController();
           setCurrentContactId(contact.contactId);
-
-          setAgentChatSessionState(state => [...state, { [contact.contactId]: agentChatSession }]);
+          setAgentChatSessionState(state => [
+            ...state,
+            { [contact.contactId]: agentChatSession }
+          ]);
 
           localLanguageTranslate = contact.getAttributes().x_lang?.value || '';
-          if (Object.keys(languageOptions).find(key => languageOptions[key] === localLanguageTranslate)) {
-            languageTranslate.push({ contactId: contact.contactId, lang: localLanguageTranslate });
+          if (
+            Object.keys(languageOptions).find(
+              key => languageOptions[key] === localLanguageTranslate
+            )
+          ) {
+            languageTranslate.push({
+              contactId: contact.contactId,
+              lang: localLanguageTranslate
+            });
             setLanguageTranslate(languageTranslate);
             setRefreshChild('updated');
           }
         });
 
         contact.onConnected(async () => {
-          const cnn = contact.getConnections().find(cnn => cnn.getType() === window.connect.ConnectionType.AGENT);
+          const cnn = contact.getConnections().find(
+            cnn => cnn.getType() === window.connect.ConnectionType.AGENT
+          );
           const agentChatSession = await cnn.getMediaController();
           getEvents(contact, agentChatSession);
         });
@@ -348,89 +367,64 @@ const Ccp = () => {
         });
       });
 
+      // 🔁 Agent state listener
       window.connect.agent(agent => {
         agent.onStateChange(agentStateChange => {
           console.log("Agent State:", agentStateChange.newState);
         });
       });
     } else {
-      // Retry after 3 seconds if ChatSession not ready
-      setTimeout(() => subscribeConnectEvents(), 3000);
+      console.log("ChatSession not ready. Retrying...");
+      setTimeout(() => subscribeConnectEvents(), 1000);
     }
   }
 
-  // 🔁 Initialize CCP (ONLY for standalone)
-  // useEffect(() => {
-  //   const isEmbedded = window.self !== window.top;
-  //   const connectUrl = process.env.REACT_APP_CONNECT_INSTANCE_URL;
-
-  //   if (!isEmbedded && window.connect && window.connect.agentApp) {
-  //     console.log("Running in standalone mode. Initializing CCP.");
-  //     window.connect.agentApp.initApp(
-  //       "ccp",
-  //       "ccp-container",
-  //       connectUrl + "/connect/ccp-v2/",
-  //       {
-  //         ccpParams: {
-  //           region: process.env.REACT_APP_CONNECT_REGION,
-  //           pageOptions: {
-  //             enableAudioDeviceSettings: true,
-  //             enablePhoneTypeSettings: true
-  //           }
-  //         }
-  //       }
-  //     );
-  //   } else {
-  //     console.log("Running inside Amazon Connect Agent Workspace. Skipping initApp.");
-  //   }
-
-  //   subscribeConnectEvents();
-  // }, []);
+  // 🔁 Init CCP (Only if not in Agent Workspace)
   useEffect(() => {
-  const isEmbedded = window.self !== window.top;
-  const connectUrl = process.env.REACT_APP_CONNECT_INSTANCE_URL;
+    const isEmbedded = window.self !== window.top; // true = Agent Workspace, false = Standalone
+    const connectUrl = process.env.REACT_APP_CONNECT_INSTANCE_URL;
 
-  const initialize = () => {
-    if (!isEmbedded && window.connect && window.connect.agentApp) {
-      console.log("Running in standalone mode. Initializing CCP.");
-      window.connect.agentApp.initApp(
-        "ccp",
-        "ccp-container",
-        connectUrl + "/connect/ccp-v2/",
-        {
-          ccpParams: {
-            region: process.env.REACT_APP_CONNECT_REGION,
-            pageOptions: {
-              enableAudioDeviceSettings: true,
-              enablePhoneTypeSettings: true
+    const initialize = () => {
+      if (!isEmbedded && window.connect?.agentApp) {
+        console.log("🟢 Standalone mode: Initializing CCP");
+        window.connect.agentApp.initApp(
+          'ccp',
+          'ccp-container',
+          connectUrl + '/connect/ccp-v2/',
+          {
+            ccpParams: {
+              region: process.env.REACT_APP_CONNECT_REGION,
+              pageOptions: {
+                enableAudioDeviceSettings: true,
+                enablePhoneTypeSettings: true
+              }
             }
           }
-        }
-      );
-    } else {
-      console.log("Running inside Agent Workspace. Skipping CCP init.");
-    }
+        );
+      } else {
+        console.log("🟠 Embedded mode (Agent Workspace): Skipping CCP init");
+      }
 
-    // Only subscribe after core is ready
-    if (window.connect && window.connect.core) {
-      subscribeConnectEvents();
-    } else {
-      console.log("connect.core not ready. Retrying in 500ms...");
-      setTimeout(initialize, 500);
-    }
-  };
+      // Safe check before subscribing to events
+      if (window.connect && (window.connect.core || window.connect.ChatSession)) {
+        subscribeConnectEvents();
+      } else {
+        console.log("⏳ connect.* not ready yet. Retrying in 500ms...");
+        setTimeout(initialize, 500);
+      }
+    };
 
-  initialize(); // Call the init function
-}, []);
-
+    initialize();
+  }, []);
 
   return (
     <main>
-      <Grid columns='equal' stackable padded>
+      <Grid columns="equal" stackable padded>
         <Grid.Row>
-          {/* CCP container (only relevant in standalone) */}
+          {/* CCP container – visible only in standalone mode */}
           <div id="ccp-container" style={{ width: '400px' }}></div>
-          {/* Chatroom widget */}
+
+          {/* Translate-enabled chatroom */}
           <div id="chatroom">
             <Chatroom session={agentChatSessionState} />
           </div>
@@ -441,12 +435,3 @@ const Ccp = () => {
 };
 
 export default Ccp;
-
-
-
-
-
-
-
-
-
