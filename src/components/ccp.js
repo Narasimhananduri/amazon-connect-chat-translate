@@ -360,10 +360,37 @@ const Ccp = () => {
   }
 
   // 🔁 Initialize CCP (ONLY for standalone)
-  useEffect(() => {
-    const isEmbedded = window.self !== window.top;
-    const connectUrl = process.env.REACT_APP_CONNECT_INSTANCE_URL;
+  // useEffect(() => {
+  //   const isEmbedded = window.self !== window.top;
+  //   const connectUrl = process.env.REACT_APP_CONNECT_INSTANCE_URL;
 
+  //   if (!isEmbedded && window.connect && window.connect.agentApp) {
+  //     console.log("Running in standalone mode. Initializing CCP.");
+  //     window.connect.agentApp.initApp(
+  //       "ccp",
+  //       "ccp-container",
+  //       connectUrl + "/connect/ccp-v2/",
+  //       {
+  //         ccpParams: {
+  //           region: process.env.REACT_APP_CONNECT_REGION,
+  //           pageOptions: {
+  //             enableAudioDeviceSettings: true,
+  //             enablePhoneTypeSettings: true
+  //           }
+  //         }
+  //       }
+  //     );
+  //   } else {
+  //     console.log("Running inside Amazon Connect Agent Workspace. Skipping initApp.");
+  //   }
+
+  //   subscribeConnectEvents();
+  // }, []);
+  useEffect(() => {
+  const isEmbedded = window.self !== window.top;
+  const connectUrl = process.env.REACT_APP_CONNECT_INSTANCE_URL;
+
+  const initialize = () => {
     if (!isEmbedded && window.connect && window.connect.agentApp) {
       console.log("Running in standalone mode. Initializing CCP.");
       window.connect.agentApp.initApp(
@@ -381,11 +408,21 @@ const Ccp = () => {
         }
       );
     } else {
-      console.log("Running inside Amazon Connect Agent Workspace. Skipping initApp.");
+      console.log("Running inside Agent Workspace. Skipping CCP init.");
     }
 
-    subscribeConnectEvents();
-  }, []);
+    // Only subscribe after core is ready
+    if (window.connect && window.connect.core) {
+      subscribeConnectEvents();
+    } else {
+      console.log("connect.core not ready. Retrying in 500ms...");
+      setTimeout(initialize, 500);
+    }
+  };
+
+  initialize(); // Call the init function
+}, []);
+
 
   return (
     <main>
