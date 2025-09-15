@@ -197,7 +197,7 @@ const Ccp = () => {
                 ccpParams: { 
                     region: process.env.REACT_APP_CONNECT_REGION,
                     pageOptions: {                  // optional
-                        enableAudioDeviceSettings: true, // optional, defaults to 'false'
+                        enableAudioDeviceSettings: false, // optional, defaults to 'false'
                         enablePhoneTypeSettings: true // optional, defaults to 'true'
                       }
                 } 
