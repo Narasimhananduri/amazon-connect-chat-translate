@@ -1,21 +1,39 @@
 import { Predictions } from '@aws-amplify/predictions';
 
-async function DetectChatText(content) {
+// async function DetectChatText(content) {
 
-    let detectLang = Predictions.interpret({
-        text: {
-            source: {
-                text: content,
-            },
-            type: 'language'
-        }
-    })
-    console.log("Response payload:", detectLang);
-    return detectLang
+//     let detectLang = Predictions.interpret({
+//         text: {
+//             source: {
+//                 text: content,
+//             },
+//             type: 'language'
+//         }
+//     })
+//     console.log("Response payload:", detectLang);
+//     return detectLang
+// }
+
+// export default DetectChatText
+
+function DetectChatText(content) {
+  return Predictions.interpret({
+    text: {
+      source: {
+        text: content,
+      },
+      type: 'language'
+    }
+  })
+  .then(result => {
+    console.log("Response payload:", result);
+    return result;
+  })
+  .catch(err => {
+    console.error("Error:", err);
+  });
 }
-
 export default DetectChatText
-
 // async function DetectChatText(content) {
 //   try {
 //     const response = await fetch('https://7k1up84d6h.execute-api.us-east-1.amazonaws.com/prod/detect-language', {
