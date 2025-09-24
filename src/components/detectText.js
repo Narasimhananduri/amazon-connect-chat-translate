@@ -1,4 +1,4 @@
-import { Predictions } from '@aws-amplify/predictions';
+// import { Predictions } from '@aws-amplify/predictions';
 
 // async function DetectChatText(content) {
 
@@ -16,22 +16,76 @@ import { Predictions } from '@aws-amplify/predictions';
 
 // export default DetectChatText
 
-function DetectChatText(content) {
-  return Predictions.interpret({
-    text: {
-      source: {
-        text: content,
+// detecttext.js
+
+async function DetectChatText(content) {
+
+  try {
+
+    const response = await fetch('https://7k1up84d6h.execute-api.us-east-1.amazonaws.com/prod/detect-language', {
+
+      method: 'POST',
+
+      headers: {
+
+        'Content-Type': 'application/json',
+
       },
-      type: 'language'
-    }
-  })
-  .then(result => {
-    console.log("Response payload:", result);
-    return result;
-  })
-  .catch(err => {
-    console.error("Error:", err);
-  });
+
+      body: JSON.stringify({
+
+        text: {
+
+          source: {
+
+            text: content,
+
+          },
+
+          type: 'language',
+
+        },
+
+      }),
+
+    });
+ 
+    // Step 1: API Gateway response
+
+    const data = await response.json();
+ 
+    // Step 2: Parse the stringified body
+
+    const parsedBody = JSON.parse(data.body);
+ 
+    // Step 3: Normalize into Amplify-style response
+
+    return {
+
+      textInterpretation: {
+
+        language: parsedBody.detectedLanguage || 'en', // fallback to 'en'
+
+      },
+
+    };
+ 
+  } catch (error) {
+
+    console.error('Language detection failed:', error);
+
+    return {
+
+      textInterpretation: {
+
+        language: 'en',
+
+      },
+
+    };
+
+  }
+
 }
 export default DetectChatText
 // async function DetectChatText(content) {
