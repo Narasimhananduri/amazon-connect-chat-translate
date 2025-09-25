@@ -33,7 +33,7 @@ async function ProcessChatText(content, sourceLang, tagretLang) {
     // });
 
     // Custom API version
-    let response = await fetch('https://your-custom-api-url/translate', {
+    let response = await fetch('https://37kq2m4kba.execute-api.us-east-1.amazonaws.com/dev', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
