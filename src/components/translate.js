@@ -19,44 +19,33 @@
 // export default ProcessChatText
 
 
-// import { Predictions } from '@aws-amplify/predictions';
-
 async function ProcessChatText(content, sourceLang, tagretLang) {
-    // let transcriptMessage = await Predictions.convert({
-    //     translateText: {
-    //         source: {
-    //             text: content,
-    //             language: sourceLang, // defaults configured on aws-exports.js
-    //         },
-    //         targetLanguage: tagretLang
-    //     }
-    // });
-
-    // Custom API version
+  try {
     let response = await fetch('https://37kq2m4kba.execute-api.us-east-1.amazonaws.com/dev', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            content: content,
-            sourceLang: sourceLang,
-            targetLang: tagretLang,
-        }),
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        content: content,
+        sourceLang: sourceLang,
+        targetLang: tagretLang,
+      }),
     });
-
+ 
     let data = await response.json();
-
-    // Simulate same structure as original Amplify response
+ 
+    // Match Amplify Predictions return format:
+    // transcriptMessage.text must be a string (translated text only)
     let transcriptMessage = {
-        text: {
-            translatedText: data.translatedText,
-            sourceLanguage: data.sourceLanguage,
-            targetLanguage: data.targetLanguage,
-        },
+      text: data.translatedText || content, // fallback to original
     };
-
+ 
     return transcriptMessage.text;
+  } catch (error) {
+    console.error('Custom translation API failed:', error);
+    return content; // fallback to original if error
+  }
 }
-
+ 
 export default ProcessChatText;
