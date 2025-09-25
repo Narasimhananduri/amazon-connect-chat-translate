@@ -19,36 +19,44 @@
 // export default ProcessChatText
 
 
-async function ProcessChatText(content, sourceLang, targetLang) {
-  try {
-    const response = await fetch('https://37kq2m4kba.execute-api.us-east-1.amazonaws.com/dev', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        text: content,
-        sourceLang: sourceLang,
-        targetLang: targetLang,
-      }),
+// import { Predictions } from '@aws-amplify/predictions';
+
+async function ProcessChatText(content, sourceLang, tagretLang) {
+    // let transcriptMessage = await Predictions.convert({
+    //     translateText: {
+    //         source: {
+    //             text: content,
+    //             language: sourceLang, // defaults configured on aws-exports.js
+    //         },
+    //         targetLanguage: tagretLang
+    //     }
+    // });
+
+    // Custom API version
+    let response = await fetch('https://your-custom-api-url/translate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            content: content,
+            sourceLang: sourceLang,
+            targetLang: tagretLang,
+        }),
     });
- 
-    const data = await response.json();
- 
-    // Normalize to Amplify-style response
-    return {
-      text: {
-        translatedText: data.translatedText || content,
-      },
+
+    let data = await response.json();
+
+    // Simulate same structure as original Amplify response
+    let transcriptMessage = {
+        text: {
+            translatedText: data.translatedText,
+            sourceLanguage: data.sourceLanguage,
+            targetLanguage: data.targetLanguage,
+        },
     };
-  } catch (error) {
-    console.error('Translation failed:', error);
-    return {
-      text: {
-        translatedText: content, // fallback to original if error
-      },
-    };
-  }
+
+    return transcriptMessage.text;
 }
- 
+
 export default ProcessChatText;
