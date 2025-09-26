@@ -75,45 +75,133 @@
 // }
 
 // export default ProcessChatTextAPI;
-async function ProcessChatTextAPI(content, sourceLang, targetLang) {
-  const endpoint = 'https://37kq2m4kba.execute-api.us-east-1.amazonaws.com/dev'; // Replace with your real endpoint
+// async function ProcessChatTextAPI(content, sourceLang, targetLang) {
+//   const endpoint = 'https://37kq2m4kba.execute-api.us-east-1.amazonaws.com/dev'; // Replace with your real endpoint
  
-  const myInit = {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      content: content,
-      sourceLang: sourceLang,
-      targetLang: targetLang,
-    }),
-  };
+//   const myInit = {
+//     method: 'POST',
+//     headers: {
+//       'Content-Type': 'application/json',
+//     },
+//     body: JSON.stringify({
+//       content: content,
+//       sourceLang: sourceLang,
+//       targetLang: targetLang,
+//     }),
+//   };
  
-  console.log("ProcessChatTextAPI: ", content);
-  console.log("ProcessChatTextAPI: ", sourceLang);
-  console.log("ProcessChatTextAPI: ", targetLang);
-  console.log("ProcessChatTextAPI: ", endpoint);
-  console.log("ProcessChatTextAPI: ", myInit);
+//   console.log("ProcessChatTextAPI: ", content);
+//   console.log("ProcessChatTextAPI: ", sourceLang);
+//   console.log("ProcessChatTextAPI: ", targetLang);
+//   console.log("ProcessChatTextAPI: ", endpoint);
+//   console.log("ProcessChatTextAPI: ", myInit);
  
+//   try {
+//     const result = await fetch(endpoint, myInit);
+//     const rawData = await result.json();
+ 
+//     console.log("Raw API Response: ", rawData);
+ 
+//     // API Gateway wraps body as a string → parse it
+//     const parsedBody =
+//       typeof rawData.body === 'string' ? JSON.parse(rawData.body) : rawData;
+ 
+//     console.log("Parsed API Body: ", parsedBody);
+ 
+//     // Return same format as Amplify Predictions (string only)
+//     return parsedBody.translatedText || content;
+//   } catch (error) {
+//     console.error("ProcessChatTextAPI Error: ", error);
+//     return content; // fallback to original
+//   }
+// }
+ 
+// export default ProcessChatTextAPI;
+
+
+
+async function ProcessChatText(content, sourceLang, tagretLang) {
+
   try {
-    const result = await fetch(endpoint, myInit);
-    const rawData = await result.json();
+
+    let response = await fetch('https://37kq2m4kba.execute-api.us-east-1.amazonaws.com/dev', { 
+
+      method: 'POST',
+
+      headers: {
+
+        'Content-Type': 'application/json',
+
+      },
+
+      body: JSON.stringify({
+
+        content: content,
+
+        sourceLang: sourceLang,
+
+        targetLang: tagretLang,
+
+      }),
+
+    });
  
-    console.log("Raw API Response: ", rawData);
+    let data = await response.json();
  
-    // API Gateway wraps body as a string → parse it
-    const parsedBody =
-      typeof rawData.body === 'string' ? JSON.parse(rawData.body) : rawData;
+    // If API Gateway wrapped it, parse again
+
+    let parsedBody = data.body ? JSON.parse(data.body) : data;
  
-    console.log("Parsed API Body: ", parsedBody);
+    // Match Amplify Predictions return format
+
+    let transcriptMessage = {
+
+      translatedText: parsedBody.translatedText || content, // main translation
+
+      sourceLanguage: parsedBody.sourceLanguage || sourceLang,
+
+      targetLanguage: parsedBody.targetLanguage || tagretLang,
+
+    };
  
-    // Return same format as Amplify Predictions (string only)
-    return parsedBody.translatedText || content;
+    return transcriptMessage;  // <-- return object like Amplify did
+
   } catch (error) {
-    console.error("ProcessChatTextAPI Error: ", error);
-    return content; // fallback to original
+
+    console.error('Custom translation API failed:', error);
+
+    return {
+
+      translatedText: content,  // fallback
+
+      sourceLanguage: sourceLang,
+
+      targetLanguage: tagretLang,
+
+    };
+
   }
+
 }
  
-export default ProcessChatTextAPI;
+export default ProcessChatText;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
