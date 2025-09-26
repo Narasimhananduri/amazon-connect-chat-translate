@@ -65,7 +65,7 @@ async function ProcessChatTextAPI(content, sourceLang, targetLang) {
 
         // ✅ Return full object to mimic AWS response
         const response = {
-            translatedText: data.translatedText || content,
+            TranslatedText: data.translatedText || content,
             sourceLanguage: sourceLang,
             targetLanguage: targetLang
         };
