@@ -78,7 +78,7 @@ async function ProcessChatTextAPI(content, sourceLang, targetLang) {
 
         // ✅ Fallback to original format on error
         return {
-            translatedText: content, // return original text
+            TranslatedText: content, // return original text
             sourceLanguage: sourceLang,
             targetLanguage: targetLang
         };
