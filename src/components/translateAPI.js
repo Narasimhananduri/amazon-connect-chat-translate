@@ -120,7 +120,7 @@
 
 
 
-async function ProcessChatText(content, sourceLang, tagretLang) {
+async function ProcessChatTextAPI(content, sourceLang, tagretLang) {
 
   try {
 
@@ -184,7 +184,7 @@ async function ProcessChatText(content, sourceLang, tagretLang) {
 
 }
  
-export default ProcessChatText;
+export default ProcessChatTextAPI;
 
 
 
