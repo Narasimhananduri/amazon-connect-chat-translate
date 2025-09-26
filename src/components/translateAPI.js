@@ -37,87 +37,52 @@
 // export default ProcessChatTextAPI
 
 async function ProcessChatTextAPI(content, sourceLang, targetLang) {
-
     const endpoint = 'https://37kq2m4kba.execute-api.us-east-1.amazonaws.com/dev'; // Replace with your real endpoint
 
     const myInit = {
-
         method: 'POST',
-
         headers: {
-
             'Content-Type': 'application/json'
-
         },
-
         body: JSON.stringify({
-
             content: content,
-
             sourceLang: sourceLang,
-
             targetLang: targetLang
-
         })
-
     };
- 
+
     console.log("ProcessChatTextAPI: ", content);
-
     console.log("ProcessChatTextAPI: ", sourceLang);
-
     console.log("ProcessChatTextAPI: ", targetLang);
-
     console.log("ProcessChatTextAPI: ", endpoint);
-
     console.log("ProcessChatTextAPI: ", myInit);
- 
+
     try {
-
         const result = await fetch(endpoint, myInit);
-
         const data = await result.json();
 
-        console.log("Translated Message: ", data);
- 
-        // ✅ Normalize response like ProcessChatText
+        console.log("Translated Message Payload: ", data);
 
-        let transcriptMessage = {
-
-            text: data.translatedText || content, // fallback to original
-
+        // ✅ Return full object to mimic AWS response
+        const response = {
+            translatedText: data.translatedText || content,
+            sourceLanguage: sourceLang,
+            targetLanguage: targetLang
         };
- 
-        return transcriptMessage.text;
+
+        console.log("Final Translated Message: ", response);
+        return response;
 
     } catch (error) {
+        console.error("ProcessChatTextAPI Error: ", error);
 
-        console.error("ProcessChatTextAPI: ", error);
-
-        return content; // fallback to original if error
-
+        // ✅ Fallback to original format on error
+        return {
+            translatedText: content, // return original text
+            sourceLanguage: sourceLang,
+            targetLanguage: targetLang
+        };
     }
-
 }
- 
+
 export default ProcessChatTextAPI;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
