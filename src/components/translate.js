@@ -20,32 +20,67 @@
 
 
 async function ProcessChatText(content, sourceLang, tagretLang) {
+
   try {
-    let response = await fetch('https://37kq2m4kba.execute-api.us-east-1.amazonaws.com/dev', {
+
+    let response = await fetch('https://37kq2m4kba.execute-api.us-east-1.amazonaws.com/dev', { 
+
       method: 'POST',
+
       headers: {
+
         'Content-Type': 'application/json',
+
       },
+
       body: JSON.stringify({
+
         content: content,
+
         sourceLang: sourceLang,
+
         targetLang: tagretLang,
+
       }),
+
     });
  
     let data = await response.json();
  
-    // Match Amplify Predictions return format:
-    // transcriptMessage.text must be a string (translated text only)
+    // If API Gateway wrapped it, parse again
+
+    let parsedBody = data.body ? JSON.parse(data.body) : data;
+ 
+    // Match Amplify Predictions return format
+
     let transcriptMessage = {
-      text: data.translatedText || content, // fallback to original
+
+      translatedText: parsedBody.translatedText || content, // main translation
+
+      sourceLanguage: parsedBody.sourceLanguage || sourceLang,
+
+      targetLanguage: parsedBody.targetLanguage || tagretLang,
+
     };
  
-    return transcriptMessage.text;
+    return transcriptMessage;  // <-- return object like Amplify did
+
   } catch (error) {
+
     console.error('Custom translation API failed:', error);
-    return content; // fallback to original if error
+
+    return {
+
+      translatedText: content,  // fallback
+
+      sourceLanguage: sourceLang,
+
+      targetLanguage: tagretLang,
+
+    };
+
   }
+
 }
  
 export default ProcessChatText;
