@@ -19,68 +19,33 @@
 // export default ProcessChatText
 
 
-async function ProcessChatText(content, sourceLang, tagretLang) {
-
+async function ProcessChatText(content, sourceLang, targetLang) {
   try {
-
-    let response = await fetch('https://37kq2m4kba.execute-api.us-east-1.amazonaws.com/dev', { 
-
+    let response = await fetch('https://37kq2m4kba.execute-api.us-east-1.amazonaws.com/dev', {
       method: 'POST',
-
       headers: {
-
         'Content-Type': 'application/json',
-
       },
-
       body: JSON.stringify({
-
         content: content,
-
         sourceLang: sourceLang,
-
-        targetLang: tagretLang,
-
+        targetLang: targetLang,
       }),
-
     });
  
     let data = await response.json();
  
-    // If API Gateway wrapped it, parse again
-
-    let parsedBody = data.body ? JSON.parse(data.body) : data;
- 
-    // Match Amplify Predictions return format
-
+    // Match Amplify Predictions return format:
+    // transcriptMessage.text must be a string (translated text only)
     let transcriptMessage = {
-
-      translatedText: parsedBody.translatedText || content, // main translation
-
-      sourceLanguage: parsedBody.sourceLanguage || sourceLang,
-
-      targetLanguage: parsedBody.targetLanguage || tagretLang,
-
+      text: data.translatedText || content, // fallback to original
     };
  
-    return transcriptMessage;  // <-- return object like Amplify did
-
+    return transcriptMessage.text;
   } catch (error) {
-
     console.error('Custom translation API failed:', error);
-
-    return {
-
-      translatedText: content,  // fallback
-
-      sourceLanguage: sourceLang,
-
-      targetLanguage: tagretLang,
-
-    };
-
+    return content; // fallback to original if error
   }
-
 }
  
 export default ProcessChatText;
