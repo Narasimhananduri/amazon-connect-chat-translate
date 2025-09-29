@@ -21,11 +21,9 @@
 async function DetectChatText(content) {
 
   try {
-
     const response = await fetch('https://7k1up84d6h.execute-api.us-east-1.amazonaws.com/prod/detect-language', {
 
       method: 'POST',
-
       headers: {
 
         'Content-Type': 'application/json',
@@ -35,11 +33,8 @@ async function DetectChatText(content) {
       body: JSON.stringify({
 
         text: {
-
           source: {
-
             text: content,
-
           },
 
           type: 'language',
@@ -49,22 +44,13 @@ async function DetectChatText(content) {
       }),
 
     });
- 
-    // Step 1: API Gateway response
-
     const data = await response.json();
- 
-    // Step 2: Parse the stringified body
-
     const parsedBody = JSON.parse(data.body);
- 
-    // Step 3: Normalize into Amplify-style response
-
     return {
 
       textInterpretation: {
 
-        language: parsedBody.detectedLanguage || 'en', // fallback to 'en'
+        language: parsedBody.detectedLanguage || 'en',
 
       },
 
