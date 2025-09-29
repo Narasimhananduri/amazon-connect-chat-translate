@@ -37,7 +37,7 @@
 // export default ProcessChatTextAPI
 
 async function ProcessChatTextAPI(content, sourceLang, targetLang) {
-    const endpoint = 'https://37kq2m4kba.execute-api.us-east-1.amazonaws.com/dev'; // Replace with your real endpoint
+    const endpoint = 'https://37kq2m4kba.execute-api.us-east-1.amazonaws.com/dev';
 
     const myInit = {
         method: 'POST',
@@ -63,7 +63,6 @@ async function ProcessChatTextAPI(content, sourceLang, targetLang) {
 
         console.log("Translated Message Payload: ", data);
 
-        // ✅ Return full object to mimic AWS response
         const response = {
             TranslatedText: data.translatedText || content,
             sourceLanguage: sourceLang,
@@ -76,9 +75,8 @@ async function ProcessChatTextAPI(content, sourceLang, targetLang) {
     } catch (error) {
         console.error("ProcessChatTextAPI Error: ", error);
 
-        // ✅ Fallback to original format on error
         return {
-            TranslatedText: content, // return original text
+            TranslatedText: content,
             sourceLanguage: sourceLang,
             targetLanguage: targetLang
         };
