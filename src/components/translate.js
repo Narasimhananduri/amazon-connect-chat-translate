@@ -35,16 +35,16 @@ async function ProcessChatText(content, sourceLang, targetLang) {
  
     let data = await response.json();
  
-    // Match Amplify Predictions return format:
-    // transcriptMessage.text must be a string (translated text only)
+    
     let transcriptMessage = {
-      text: data.translatedText || content, // fallback to original
+      // text: data.translatedText || content,
+      text: data.translatedText || content,
     };
  
     return transcriptMessage.text;
   } catch (error) {
     console.error('Custom translation API failed:', error);
-    return content; // fallback to original if error
+    return content;
   }
 }
  
