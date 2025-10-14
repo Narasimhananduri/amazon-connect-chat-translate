@@ -442,20 +442,29 @@ const Ccp = () => {
     };
 
     useEffect(() => {
-        const connectUrl = process.env.REACT_APP_CONNECT_INSTANCE_URL;
+    const connectUrl = process.env.REACT_APP_CONNECT_INSTANCE_URL;
+
+    if (window.connect && window.connect.agentApp) {
         window.connect.agentApp.initApp(
             "ccp",
             "ccp-container",
-            connectUrl + "/connect/ccp-v2/", {
-            ccpParams: {
-                region: process.env.REACT_APP_CONNECT_REGION,
-                pageOptions: {
-                                        enablePhoneTypeSettings: true
+            connectUrl + "/connect/ccp-v2/",
+            {
+                ccpParams: {
+                    region: process.env.REACT_APP_CONNECT_REGION,
+                    pageOptions: {
+                        enablePhoneTypeSettings: true
+                    }
                 }
             }
-        );,
-        subscribeConnectEvents();
-    }, []);
+        );
+
+        subscribeConnectEvents(); // Make sure this function is defined
+    } else {
+        console.error("Amazon Connect not loaded.");
+    }
+}, []);
+
 
     return (
         <main>
