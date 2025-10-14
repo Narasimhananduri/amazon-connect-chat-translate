@@ -229,15 +229,15 @@
 
 import React, { useEffect, useState } from 'react';
 import { Grid } from 'semantic-ui-react';
-import  { Amplify }  from 'aws-amplify';
+import { Amplify } from 'aws-amplify';
 import awsconfig from '../aws-exports';
 import Chatroom from './chatroom';
-import translateText from './translate'
-import detectText from './detectText'
+import translateText from './translate';
+import detectText from './detectText';
 import { addChat, setLanguageTranslate, clearChat, useGlobalState, setCurrentContactId } from '../store/state';
- 
+
 Amplify.configure(awsconfig);
- 
+
 const Ccp = () => {
     const [languageTranslate] = useGlobalState('languageTranslate');
     var localLanguageTranslate = [];
@@ -247,99 +247,118 @@ const Ccp = () => {
     const [languageOptions] = useGlobalState('languageOptions');
     const [agentChatSessionState, setAgentChatSessionState] = useState([]);
     const [setRefreshChild] = useState([]);
- 
+
     const [voiceIntervalId, setVoiceIntervalId] = useState(null); // 🌟 Added for voice polling
- 
-    console.log(lang)
-    console.log(currentContactId)
- 
+
+    console.log("CDEBUG ===> Current language: ", lang);
+    console.log("CDEBUG ===> Current contact ID: ", currentContactId);
+
     function getEvents(contact, agentChatSession) {
-        console.log(agentChatSession);
+        console.log("CDEBUG ===> Getting events for contact: ", contact.contactId);
         contact.getAgentConnection().getMediaController().then(controller => {
             controller.onMessage(messageData => {
                 if (messageData.chatDetails.participantId === messageData.data.ParticipantId) {
-                    console.log(`CDEBUG ===> Agent ${messageData.data.DisplayName} Says`, messageData.data.Content)
-                }
-                else {
-                    console.log(`CDEBUG ===> Customer ${messageData.data.DisplayName} Says`, messageData.data.Content);
-                    processChatText(messageData.data.Content, messageData.data.Type, messageData.data.ContactId );
+                    console.log(`CDEBUG ===> Agent ${messageData.data.DisplayName} Says:`, messageData.data.Content);
+                } else {
+                    console.log(`CDEBUG ===> Customer ${messageData.data.DisplayName} Says:`, messageData.data.Content);
+                    processChatText(messageData.data.Content, messageData.data.Type, messageData.data.ContactId);
                 }
             })
         })
     }
- 
+
     async function processChatText(content, type, contactId) {
-        console.log(type);
+        console.log("CDEBUG ===> Processing chat text: ", content);
         let textLang = '';
         for (var i = 0; i < languageTranslate.length; i++) {
             if (languageTranslate[i].contactId === contactId) {
-                textLang = languageTranslate[i].lang
-                break
-            } 
+                textLang = languageTranslate[i].lang;
+                break;
+            }
         }
- 
+
         if (localLanguageTranslate.length === 0 || textLang === '') {
+            console.log("CDEBUG ===> Detecting language for content: ", content);
             let tempLang = await detectText(content);
-            textLang = tempLang.textInterpretation.language
+            textLang = tempLang.textInterpretation.language;
         }
- 
+
         function upsert(array, item) {
             const i = array.findIndex(_item => _item.contactId === item.contactId);
             if (i > -1) array[i] = item;
             else array.push(item);
         }
+
+        console.log("CDEBUG ===> Upserting language data: ", textLang);
         upsert(languageTranslate, { contactId: contactId, lang: textLang });
         setLanguageTranslate(languageTranslate);
- 
+
         let translatedMessage = await translateText(content, textLang, 'en');
-        console.log(`CDEBUG ===>  Original Message: ` + content + `\n Translated Message: ` + translatedMessage);
- 
+        console.log(`CDEBUG ===> Original Message: ` + content + `\n Translated Message: ` + translatedMessage);
+
         let data2 = {
             contactId: contactId,
             username: 'customer',
             content: <p>{content}</p>,
             translatedMessage: <p>{translatedMessage}</p>
         };
- 
+
         addChat(prevMsg => [...prevMsg, data2]);
     }
- 
+
     // 🌟 NEW FUNCTION: Fetch from custom API for voice calls
     const fetchVoiceMessages = async (contactId) => {
-    try {
-        const response = await fetch(`https://f7505y5ead.execute-api.us-east-1.amazonaws.com/test/getTranscript?contactId=${contactId}`);
-        const result = await response.json();
+        try {
+            console.log("CDEBUG ===> Fetching voice messages for contactId: ", contactId);
 
-        if (Array.isArray(result.Transcripts)) {
-            for (const message of result.Transcripts) {
-                await processChatText(message, 'voice', contactId);
+            const apiUrl = `https://https://f7505y5ead.execute-api.us-east-1.amazonaws.com/test/getTranscript?contactId=${contactId}`;
+            console.log("CDEBUG ===> API URL: ", apiUrl);
+
+            const response = await fetch(apiUrl);
+            console.log("CDEBUG ===> Response status: ", response.status);
+
+            if (!response.ok) {
+                console.error(`CDEBUG ===> Fetch failed with status: ${response.status} ${response.statusText}`);
+                return;
             }
-        } else {
-            console.warn("CDEBUG ===> No transcripts found or invalid format", result);
-        }
-    } catch (err) {
-        console.error("CDEBUG ===> Error fetching voice messages", err);
-    }
-};
 
- 
+            const result = await response.json();
+            console.log("CDEBUG ===> API Response: ", result);
+
+            if (Array.isArray(result.Transcripts)) {
+                console.log("CDEBUG ===> Transcripts found: ", result.Transcripts);
+                for (const message of result.Transcripts) {
+                    console.log("CDEBUG ===> Processing message: ", message);
+                    await processChatText(message, 'voice', contactId);
+                }
+            } else {
+                console.warn("CDEBUG ===> No transcripts found or invalid format", result);
+            }
+        } catch (err) {
+            console.error("CDEBUG ===> Error fetching voice messages: ", err);
+        }
+    };
+
     // 🌟 NEW FUNCTION: Check if the contact is voice
     const isVoiceContact = (contact) => {
-        const mediaType = contact.getType(); // Should return "CHAT" or "VOICE"
+        const mediaType = contact.getType();
+        console.log("CDEBUG ===> Contact media type: ", mediaType);  // Log media type
         return mediaType === 'VOICE';
     };
- 
+
     function subscribeConnectEvents() {
-        window.connect.core.onViewContact(function(event) {
+        console.log("CDEBUG ===> Subscribing to Connect Contact Events");
+        window.connect.core.onViewContact(function (event) {
             var contactId = event.contactId;
-            console.log("CDEBUG ===> onViewContact", contactId)
-            setCurrentContactId(contactId);    
+            console.log("CDEBUG ===> onViewContact", contactId);
+            setCurrentContactId(contactId);
         });
- 
+
         console.log("CDEBUG ===> subscribeConnectEvents");
- 
+
         if (window.connect.ChatSession) {
             console.log("CDEBUG ===> Subscribing to Connect Contact Events for chats");
+
             window.connect.contact(contact => {
                 contact.onConnecting(() => {
                     console.log("CDEBUG ===> onConnecting() >> contactId: ", contact.contactId);
@@ -348,34 +367,38 @@ const Ccp = () => {
                     let contactQueue = contact.getQueue();
                     console.log("CDEBUG ===> contactQueue: ", contactQueue);
                 });
- 
-                contact.onAccepted(async() => {
+
+                contact.onAccepted(async () => {
                     console.log("CDEBUG ===> onAccepted: ", contact);
                     const cnn = contact.getConnections().find(cnn => cnn.getType() === window.connect.ConnectionType.AGENT);
                     const agentChatSession = await cnn.getMediaController();
-                    setCurrentContactId(contact.contactId)
- 
-                    if (!isVoiceContact(contact)) {
-                        setAgentChatSessionState(agentChatSessionState => [...agentChatSessionState, {[contact.contactId] : agentChatSession}])
-                    } else {
-                        // 🌟 Start polling for voice messages
+                    setCurrentContactId(contact.contactId);
+
+                    if (isVoiceContact(contact)) {
+                        console.log("CDEBUG ===> Voice contact detected. Starting voice message fetch.");
+
                         const intervalId = setInterval(() => {
+                            console.log("CDEBUG ===> Polling for voice messages. ContactId: ", contact.contactId);
                             fetchVoiceMessages(contact.contactId);
                         }, 3000);
+
                         setVoiceIntervalId(intervalId);
+                        console.log("CDEBUG ===> Interval started for contactId: ", contact.contactId);
+                    } else {
+                        console.log("CDEBUG ===> Non-voice contact. Skipping voice message fetch.");
                     }
- 
+
                     localLanguageTranslate = contact.getAttributes().x_lang?.value;
                     if (localLanguageTranslate && Object.keys(languageOptions).find(key => languageOptions[key] === localLanguageTranslate) !== undefined) {
-                        console.log("CDEBUG ===> Setting lang code from attribites:", localLanguageTranslate)
-                        languageTranslate.push({ contactId: contact.contactId, lang: localLanguageTranslate })
+                        console.log("CDEBUG ===> Setting lang code from attributes:", localLanguageTranslate);
+                        languageTranslate.push({ contactId: contact.contactId, lang: localLanguageTranslate });
                         setLanguageTranslate(languageTranslate);
-                        setRefreshChild('updated')
+                        setRefreshChild('updated');
                     }
-                    console.log("CDEBUG ===> onAccepted, languageTranslate ", languageTranslate)
+                    console.log("CDEBUG ===> onAccepted, languageTranslate ", languageTranslate);
                 });
- 
-                contact.onConnected(async() => {
+
+                contact.onConnected(async () => {
                     console.log("CDEBUG ===> onConnected() >> contactId: ", contact.contactId);
                     if (!isVoiceContact(contact)) {
                         const cnn = contact.getConnections().find(cnn => cnn.getType() === window.connect.ConnectionType.AGENT);
@@ -383,16 +406,16 @@ const Ccp = () => {
                         getEvents(contact, agentChatSession);
                     }
                 });
- 
+
                 contact.onRefresh(() => {
                     console.log("CDEBUG ===> onRefresh() >> contactId: ", contact.contactId);
                 });
- 
+
                 contact.onEnded(() => {
                     console.log("CDEBUG ===> onEnded() >> contactId: ", contact.contactId);
                     setLang('');
                 });
- 
+
                 contact.onDestroy(() => {
                     console.log("CDEBUG ===> onDestroy() >> contactId: ", contact.contactId);
                     setCurrentContactId('');
@@ -404,7 +427,7 @@ const Ccp = () => {
                     }
                 });
             });
- 
+
             console.log("CDEBUG ===> Subscribing to Connect Agent Events");
             window.connect.agent((agent) => {
                 agent.onStateChange((agentStateChange) => {
@@ -414,42 +437,39 @@ const Ccp = () => {
             });
         } else {
             console.log("CDEBUG ===> waiting 3s");
-            setTimeout(function() { subscribeConnectEvents(); }, 3000);
+            setTimeout(function () { subscribeConnectEvents(); }, 3000);
         }
     };
- 
+
     useEffect(() => {
         const connectUrl = process.env.REACT_APP_CONNECT_INSTANCE_URL;
         window.connect.agentApp.initApp(
             "ccp",
             "ccp-container",
-            connectUrl + "/connect/ccp-v2/", { 
-                ccpParams: { 
-                    region: process.env.REACT_APP_CONNECT_REGION,
-                    pageOptions: { 
-                        enableAudioDeviceSettings: true,
-                        enablePhoneTypeSettings: true
-                    }
-                } 
+            connectUrl + "/connect/ccp-v2/", {
+            ccpParams: {
+                region: process.env.REACT_APP_CONNECT_REGION,
+                pageOptions: {
+                                        enablePhoneTypeSettings: true
+                }
             }
         );
         subscribeConnectEvents();
     }, []);
- 
+
     return (
-<main>
-<Grid columns='equal' stackable padded>
-<Grid.Row>
-<div id="ccp-container"></div>
-<div id="chatroom"><Chatroom session={agentChatSessionState} /></div> 
-</Grid.Row>
-</Grid>
-</main>
+        <main>
+            <Grid columns='equal' stackable padded>
+                <Grid.Row>
+                    <div id="ccp-container"></div>
+                    <div id="chatroom"><Chatroom session={agentChatSessionState} /></div>
+                </Grid.Row>
+            </Grid>
+        </main>
     );
 };
- 
-export default Ccp;
 
+export default Ccp;
 
 
 
