@@ -311,7 +311,7 @@ const Ccp = () => {
         try {
             console.log("CDEBUG ===> Fetching voice messages for contactId: ", contactId);
 
-            const apiUrl = `https://https://f7505y5ead.execute-api.us-east-1.amazonaws.com/test/getTranscript?contactId=${contactId}`;
+            const apiUrl = `https://f7505y5ead.execute-api.us-east-1.amazonaws.com/test/getTranscript?contactId=${contactId}`;
             console.log("CDEBUG ===> API URL: ", apiUrl);
 
             const response = await fetch(apiUrl);
