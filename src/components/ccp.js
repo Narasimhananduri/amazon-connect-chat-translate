@@ -343,7 +343,7 @@ const Ccp = () => {
     const isVoiceContact = (contact) => {
         const mediaType = contact.getType();
         console.log("CDEBUG ===> Contact media type: ", mediaType);  // Log media type
-        return mediaType === 'VOICE';
+        return mediaType === 'voice';
     };
 
     function subscribeConnectEvents() {
