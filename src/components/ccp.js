@@ -453,7 +453,7 @@ const Ccp = () => {
                                         enablePhoneTypeSettings: true
                 }
             }
-        );
+        );,
         subscribeConnectEvents();
     }, []);
 
