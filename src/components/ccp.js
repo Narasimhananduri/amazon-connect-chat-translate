@@ -488,7 +488,7 @@
 
 
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Grid } from 'semantic-ui-react';
 import { Amplify } from 'aws-amplify';
 import awsconfig from '../aws-exports';
@@ -514,8 +514,8 @@ const Ccp = () => {
     const [agentChatSessionState, setAgentChatSessionState] = useState([]);
     const [setRefreshChild] = useState([]);
     const [voiceIntervalId, setVoiceIntervalId] = useState(null);
-    const [processedTranscripts, setProcessedTranscripts] = useState({});
-    const [lastApiResponse, setLastApiResponse] = useState({});
+    const lastApiResponseRef = useRef({});
+    const processedTranscriptsRef = useRef({});
 
     console.log("CDEBUG ===> Current language: ", lang);
     console.log("CDEBUG ===> Current contact ID: ", currentContactId);
@@ -579,38 +579,6 @@ const Ccp = () => {
         addChat(prevMsg => [...prevMsg, data2]);
     }
 
-    // const fetchVoiceMessages = async (contactId) => {
-    //     try {
-    //         console.log("CDEBUG ===> Fetching voice messages for contactId: ", contactId);
-
-    //         const apiUrl = `https://f7505y5ead.execute-api.us-east-1.amazonaws.com/test/getTranscript?contactId=${contactId}`;
-    //         console.log("CDEBUG ===> API URL: ", apiUrl);
-
-    //         const response = await fetch(apiUrl);
-    //         console.log("CDEBUG ===> Response status: ", response.status);
-
-    //         if (!response.ok) {
-    //             console.error(`CDEBUG ===> Fetch failed with status: ${response.status} ${response.statusText}`);
-    //             return;
-    //         }
-
-    //         const result = await response.json();
-    //         console.log("CDEBUG ===> API Response: ", result);
-
-    //         if (Array.isArray(result.Transcripts)) {
-    //             console.log("CDEBUG ===> Transcripts found: ", result.Transcripts);
-    //             for (const message of result.Transcripts) {
-    //                 console.log("CDEBUG ===> Processing message: ", message);
-    //                 await processChatText(message, 'voice', contactId);
-    //             }
-    //         } else {
-    //             console.warn("CDEBUG ===> No transcripts found or invalid format", result);
-    //         }
-    //     } catch (err) {
-    //         console.error("CDEBUG ===> Error fetching voice messages: ", err);
-    //     }
-    // };
-
     const fetchVoiceMessages = async (contactId) => {
     try {
         console.log("CDEBUG ===> Fetching voice messages for contactId:", contactId);
@@ -630,9 +598,9 @@ const Ccp = () => {
             return;
         }
  
-        // Convert array to string for easy comparison
+        // stringify to check if the full response changed
         const currentResponseString = JSON.stringify(result.Transcripts);
-        const lastResponseString = lastApiResponse[contactId];
+        const lastResponseString = lastApiResponseRef.current[contactId];
  
         // Skip if nothing changed
         if (currentResponseString === lastResponseString) {
@@ -640,17 +608,13 @@ const Ccp = () => {
             return;
         }
  
-        // Store this response for comparison next time
-        setLastApiResponse(prev => ({
-            ...prev,
-            [contactId]: currentResponseString
-        }));
+        // store latest API response for this contact
+        lastApiResponseRef.current[contactId] = currentResponseString;
  
-        // Get previously processed messages
-        const previous = processedTranscripts[contactId] || [];
- 
-        // Find only new messages
-        const newMessages = result.Transcripts.filter(msg => !previous.includes(msg));
+        // find only new messages
+        const previousMessages = processedTranscriptsRef.current[contactId] || [];
+        const previousSet = new Set(previousMessages.map(msg => JSON.stringify(msg)));
+        const newMessages = result.Transcripts.filter(msg => !previousSet.has(JSON.stringify(msg)));
  
         if (newMessages.length === 0) {
             console.log("CDEBUG ===> No new messages to process.");
@@ -659,16 +623,15 @@ const Ccp = () => {
  
         console.log("CDEBUG ===> New messages to process:", newMessages);
  
-        // Process new ones
         for (const message of newMessages) {
-            await processChatText(message, 'voice', contactId);
+            await processChatText(message, "voice", contactId);
         }
  
-        // Update processed transcripts
-        setProcessedTranscripts(prev => ({
-            ...prev,
-            [contactId]: [...previous, ...newMessages]
-        }));
+        // update the processed transcripts memory
+        processedTranscriptsRef.current[contactId] = [
+            ...(processedTranscriptsRef.current[contactId] || []),
+            ...newMessages,
+        ];
  
     } catch (err) {
         console.error("CDEBUG ===> Error fetching voice messages:", err);
@@ -764,17 +727,8 @@ const Ccp = () => {
                         setVoiceIntervalId(null);
                     }
                   // Clean stored transcripts & responses
-                    setProcessedTranscripts(prev => {
-                        const copy = { ...prev };
-                        delete copy[contact.contactId];
-                        return copy;
-                    });
-                 
-                    setLastApiResponse(prev => {
-                        const copy = { ...prev };
-                        delete copy[contact.contactId];
-                        return copy;
-                    });
+                    delete lastApiResponseRef.current[contact.contactId];
+                    delete processedTranscriptsRef.current[contact.contactId];
                 });
             });
 
