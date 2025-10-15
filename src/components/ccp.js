@@ -515,6 +515,7 @@ const Ccp = () => {
     const [setRefreshChild] = useState([]);
     const [voiceIntervalId, setVoiceIntervalId] = useState(null);
     const [processedTranscripts, setProcessedTranscripts] = useState({});
+    const [lastApiResponse, setLastApiResponse] = useState({});
 
     console.log("CDEBUG ===> Current language: ", lang);
     console.log("CDEBUG ===> Current contact ID: ", currentContactId);
@@ -617,42 +618,57 @@ const Ccp = () => {
         const apiUrl = `https://f7505y5ead.execute-api.us-east-1.amazonaws.com/test/getTranscript?contactId=${contactId}`;
         const response = await fetch(apiUrl);
         if (!response.ok) {
-            console.error(`CDEBUG ===> Fetch failed: ${response.status} ${response.statusText}`);
+            console.error(`CDEBUG ===> Fetch failed with status: ${response.status} ${response.statusText}`);
             return;
         }
  
         const result = await response.json();
         console.log("CDEBUG ===> API Response:", result);
  
-        if (Array.isArray(result.Transcripts)) {
-            console.log("CDEBUG ===> Transcripts found:", result.Transcripts);
- 
-            // Get already processed transcripts for this contact
-            const previous = processedTranscripts[contactId] || [];
- 
-            // Filter out duplicates — only new messages are processed
-            const newMessages = result.Transcripts.filter(msg => !previous.includes(msg));
- 
-            if (newMessages.length === 0) {
-                console.log("CDEBUG ===> No new messages to process.");
-                return;
-            }
- 
-            console.log("CDEBUG ===> New messages:", newMessages);
- 
-            // Process only new messages
-            for (const message of newMessages) {
-                await processChatText(message, 'voice', contactId);
-            }
- 
-            // Update processed transcripts
-            setProcessedTranscripts(prev => ({
-                ...prev,
-                [contactId]: [...previous, ...newMessages]
-            }));
-        } else {
-            console.warn("CDEBUG ===> Invalid transcript format", result);
+        if (!Array.isArray(result.Transcripts)) {
+            console.warn("CDEBUG ===> Invalid or missing Transcripts array", result);
+            return;
         }
+ 
+        // Convert array to string for easy comparison
+        const currentResponseString = JSON.stringify(result.Transcripts);
+        const lastResponseString = lastApiResponse[contactId];
+ 
+        // Skip if nothing changed
+        if (currentResponseString === lastResponseString) {
+            console.log("CDEBUG ===> API response unchanged, skipping update.");
+            return;
+        }
+ 
+        // Store this response for comparison next time
+        setLastApiResponse(prev => ({
+            ...prev,
+            [contactId]: currentResponseString
+        }));
+ 
+        // Get previously processed messages
+        const previous = processedTranscripts[contactId] || [];
+ 
+        // Find only new messages
+        const newMessages = result.Transcripts.filter(msg => !previous.includes(msg));
+ 
+        if (newMessages.length === 0) {
+            console.log("CDEBUG ===> No new messages to process.");
+            return;
+        }
+ 
+        console.log("CDEBUG ===> New messages to process:", newMessages);
+ 
+        // Process new ones
+        for (const message of newMessages) {
+            await processChatText(message, 'voice', contactId);
+        }
+ 
+        // Update processed transcripts
+        setProcessedTranscripts(prev => ({
+            ...prev,
+            [contactId]: [...previous, ...newMessages]
+        }));
  
     } catch (err) {
         console.error("CDEBUG ===> Error fetching voice messages:", err);
@@ -747,6 +763,18 @@ const Ccp = () => {
                         clearInterval(voiceIntervalId);
                         setVoiceIntervalId(null);
                     }
+                  // Clean stored transcripts & responses
+                    setProcessedTranscripts(prev => {
+                        const copy = { ...prev };
+                        delete copy[contact.contactId];
+                        return copy;
+                    });
+                 
+                    setLastApiResponse(prev => {
+                        const copy = { ...prev };
+                        delete copy[contact.contactId];
+                        return copy;
+                    });
                 });
             });
 
