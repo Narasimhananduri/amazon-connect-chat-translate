@@ -247,6 +247,13 @@ import {
 
 Amplify.configure(awsconfig);
 
+export const isVoiceContact = (contact) => {
+        const mediaType = contact.getType();
+        console.log("CDEBUG ===> Contact media type: ", mediaType);
+        return mediaType === 'voice';
+    };
+
+
 const Ccp = () => {
     const [languageTranslate] = useGlobalState('languageTranslate');
     const [Chats] = useGlobalState('Chats');
@@ -438,11 +445,11 @@ const Ccp = () => {
     }
 };
 
-      const isVoiceContact = (contact) => {
-        const mediaType = contact.getType();
-        console.log("CDEBUG ===> Contact media type: ", mediaType);
-        return mediaType === 'voice';
-    };
+    //   const isVoiceContact = (contact) => {
+    //     const mediaType = contact.getType();
+    //     console.log("CDEBUG ===> Contact media type: ", mediaType);
+    //     return mediaType === 'voice';
+    // };
 
     function subscribeConnectEvents() {
         console.log("CDEBUG ===> Subscribing to Connect Contact Events");
