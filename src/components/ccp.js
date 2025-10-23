@@ -438,7 +438,7 @@ const Ccp = () => {
     }
 };
 
-    const isVoiceContact = (contact) => {
+      export const isVoiceContact = (contact) => {
         const mediaType = contact.getType();
         console.log("CDEBUG ===> Contact media type: ", mediaType);
         return mediaType === 'voice';
