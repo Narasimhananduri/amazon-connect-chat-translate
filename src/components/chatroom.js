@@ -242,13 +242,16 @@ const Chatroom = (props) => {
                 const pollyData = await pollyResponse.json();
                 if (pollyData && pollyData.audio) {
                     console.log("Polly API success — sending audio message to Connect.");
- 
+
+                    // ✅ Convert Base64 audio to Uint8Array before sending
+                    const audioBytes = Uint8Array.from(atob(pollyData.audio), c => c.charCodeAt(0));
+
                     // Send the audio as voice message
-                    await sendMessage(session, pollyData.audio, "audio/mpeg");
- 
+                    await sendMessage(session, audioBytes, "audio/mpeg");
+
                     // Optional: add an audio playback in chat window
                     const audioElement = (
-<audio controls src={`data:audio/mp3;base64,${pollyData.audio}`} />
+                        <audio controls src={`data:audio/mp3;base64,${pollyData.audio}`} />
                     );
  
                     let voiceData = {
@@ -309,8 +312,3 @@ const Chatroom = (props) => {
 };
  
 export default Chatroom;
-
-
-
-
-
