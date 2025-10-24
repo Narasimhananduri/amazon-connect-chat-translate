@@ -165,7 +165,7 @@ const Chatroom = (props) => {
                 return Object.keys(object).find(key => object[key] === obj.lang);
         }
     }
- 
+    
     const sendMessage = async(session, content, contentType = "text/plain") => {
         const awsSdkResponse = await session.sendMessage({
             contentType: contentType,
@@ -209,9 +209,10 @@ const Chatroom = (props) => {
  
         addChat(prevMsg => [...prevMsg, data2]);
         setNewMessage("");
- 
+        console.log("props.session:", props.session);
+
         const session = retrieveValue(currentContactId[0]);
- 
+        
         function retrieveValue(key){
             var value = "";
             for(var obj in props.session) {
