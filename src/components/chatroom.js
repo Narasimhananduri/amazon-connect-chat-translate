@@ -210,8 +210,11 @@ const Chatroom = (props) => {
         addChat(prevMsg => [...prevMsg, data2]);
         setNewMessage("");
         console.log("props.session:", props.session);
+        
+        
 
         const session = retrieveValue(currentContactId[0]);
+        console.log("retrieved session:", session);
         
         function retrieveValue(key){
             var value = "";
