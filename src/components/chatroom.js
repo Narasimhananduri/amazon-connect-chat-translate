@@ -15,7 +15,8 @@ const Chatroom = (props) => {
     const agentUsername = 'AGENT';
     const messageEl = useRef(null);
     const input = useRef(null);
-    
+    const [mediaType] = useGlobalState('mediaType');
+    console.log("Current global mediaType:", mediaType);
     function getKeyByValue(object) {
         let obj = languageTranslate.find(o => o.contactId === currentContactId[0]);
         if(obj === undefined) {
