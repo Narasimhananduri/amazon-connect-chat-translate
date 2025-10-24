@@ -5,6 +5,7 @@ const { setGlobalState, useGlobalState } = createGlobalState({
     languageTranslate: [],
     Chats: [],
     currentContactId: 'none',
+    mediaType: '', // ✅ new global state
     languageOptions: {
         'Afrikaans':'af',
         'Albanian':'sq',
@@ -97,6 +98,10 @@ export const setLanguageTranslate = (state) => {
 
 export const setCurrentContactId = (contactId) => {
     setGlobalState("currentContactId", contactId);
+};
+// ✅ NEW FUNCTION
+export const setMediaType = (type) => {
+    setGlobalState("mediaType", type);
 };
 
 export { useGlobalState };
