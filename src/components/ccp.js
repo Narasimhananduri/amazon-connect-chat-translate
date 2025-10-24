@@ -740,9 +740,7 @@ const Ccp = () => {
 
                     if (voiceIntervalId) {
                         clearInterval(voiceIntervalId);
-                       
-                        ::contentReference[oaicite:0]{index=0}
-                                        setVoiceIntervalId(null);
+                        setVoiceIntervalId(null);
                     }
 
                     // Clean stored transcripts & responses
