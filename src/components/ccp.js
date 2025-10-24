@@ -242,7 +242,8 @@ import {
     setLanguageTranslate,
     clearChat,
     useGlobalState,
-    setCurrentContactId
+    setCurrentContactId,
+    setMediaType
 } from '../store/state';
 
 Amplify.configure(awsconfig);
@@ -399,6 +400,7 @@ const Ccp = () => {
       const isVoiceContact = (contact) => {
         const mediaType = contact.getType();
         console.log("CDEBUG ===> Contact media type: ", mediaType);
+        setMediaType(mediaType);
         return mediaType === 'voice';
     };
 
