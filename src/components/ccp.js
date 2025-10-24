@@ -247,11 +247,6 @@ import {
 
 Amplify.configure(awsconfig);
 
-export const isVoiceContact = (contact) => {
-        const mediaType = contact.getType();
-        console.log("CDEBUG ===> Contact media type: ", mediaType);
-        return mediaType === 'voice';
-    };
 
 
 const Ccp = () => {
@@ -283,50 +278,6 @@ const Ccp = () => {
         })
     }
 
-    // async function processChatText(content, type, contactId) {
-    //     console.log("CDEBUG ===> Processing chat text: ", content);
-
-    //     if (!Array.isArray(languageTranslate)) {
-    //         console.error("CDEBUG ===> languageTranslate is not an array or is undefined", languageTranslate);
-    //         return;
-    //     }
-
-    //     let textLang = '';
-    //     for (var i = 0; i < languageTranslate.length; i++) {
-    //         if (languageTranslate[i].contactId === contactId) {
-    //             textLang = languageTranslate[i].lang;
-    //             break;
-    //         }
-    //     }
-
-    //     if (textLang === '') {
-    //         console.log("CDEBUG ===> Detecting language for content: ", content);
-    //         let tempLang = await detectText(content);
-    //         textLang = tempLang.textInterpretation.language;
-    //     }
-
-    //     function upsert(array, item) {
-    //         const i = array.findIndex(_item => _item.contactId === item.contactId);
-    //         if (i > -1) array[i] = item;
-    //         else array.push(item);
-    //     }
-
-    //     console.log("CDEBUG ===> Upserting language data: ", textLang);
-    //     upsert(languageTranslate, { contactId: contactId, lang: textLang });
-    //     setLanguageTranslate(languageTranslate);
-
-    //     let translatedMessage = await translateText(content, textLang, 'en');
-    //     console.log(`CDEBUG ===> Original Message: ` + content + `\n Translated Message: ` + translatedMessage);
-
-    //     let data2 = {
-    //         contactId: contactId,
-    //         username: 'customer',
-    //         content: <p>{content}</p>,
-    //         translatedMessage: <p>{translatedMessage}</p>
-    //     };
-
-    //     addChat(prevMsg => [...prevMsg, data2]);
-    // }
     async function processChatText(content, type, contactId) {
     console.log("CDEBUG ===> Processing chat text: ", content);
 
@@ -445,11 +396,11 @@ const Ccp = () => {
     }
 };
 
-    //   const isVoiceContact = (contact) => {
-    //     const mediaType = contact.getType();
-    //     console.log("CDEBUG ===> Contact media type: ", mediaType);
-    //     return mediaType === 'voice';
-    // };
+      const isVoiceContact = (contact) => {
+        const mediaType = contact.getType();
+        console.log("CDEBUG ===> Contact media type: ", mediaType);
+        return mediaType === 'voice';
+    };
 
     function subscribeConnectEvents() {
         console.log("CDEBUG ===> Subscribing to Connect Contact Events");
