@@ -141,12 +141,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import './chatroom.css';
 import Message from './message.js';
-//import translateText from './translate'
-import translateTextAPI from './translateAPI'
+// import translateText from './translate'
+import translateTextAPI from './translateAPI';
 import { addChat, useGlobalState } from '../store/state';
- 
+
 const Chatroom = (props) => {
- 
     const [Chats] = useGlobalState('Chats');
     const currentContactId = useGlobalState('currentContactId');
     const [newMessage, setNewMessage] = useState("");
@@ -157,16 +156,22 @@ const Chatroom = (props) => {
     const agentUsername = 'AGENT';
     const messageEl = useRef(null);
     const input = useRef(null);
+
+    // Get language code key from languageOptions for display
     function getKeyByValue(object) {
         let obj = languageTranslate.find(o => o.contactId === currentContactId[0]);
-        if(obj === undefined) {
-            return
-          } else {
-                return Object.keys(object).find(key => object[key] === obj.lang);
+        if (!obj) {
+            return;
         }
+        return Object.keys(object).find(key => object[key] === obj.lang);
     }
-    
-    const sendMessage = async(session, content, contentType = "text/plain") => {
+
+    // Fixed sendMessage - it calls sendMessage on valid session instance
+    const sendMessage = async (session, content, contentType = "text/plain") => {
+        if (!session || typeof session.sendMessage !== "function") {
+            console.error("Invalid session or sendMessage method not found");
+            return;
+        }
         const awsSdkResponse = await session.sendMessage({
             contentType: contentType,
             message: content
@@ -174,80 +179,75 @@ const Chatroom = (props) => {
         const { AbsoluteTime, Id } = awsSdkResponse.data;
         console.log(AbsoluteTime, Id);
     }
- 
+
     useEffect(() => {
         // auto-scroll and focus input
-        if (messageEl) {
+        if (messageEl.current) {
             messageEl.current.addEventListener('DOMNodeInserted', event => {
                 const { currentTarget: target } = event;
                 target.scroll({ top: target.scrollHeight, behavior: 'smooth' });
             });
         }
-        input.current.focus();
+        if (input.current) input.current.focus();
     }, []);
- 
+
+    // Revised function to get the session correctly from props.session object
+    const getSession = (contactId) => {
+        if (!contactId) return null;
+        return props.session ? props.session[contactId] : null;
+    }
+
     async function handleSubmit(event) {
         event.preventDefault();
         if (newMessage === "") return;
- 
-        let destLang = languageTranslate.find(o => o.contactId === currentContactId[0]);
-        console.log("destLang: ", destLang);
- 
+
+        let destLangObj = languageTranslate.find(o => o.contactId === currentContactId[0]);
+        if (!destLangObj) {
+            console.warn("No language found for current contact, defaulting to 'en'");
+            destLangObj = { lang: 'en' };
+        }
+
+        console.log("destLang: ", destLangObj);
+
         console.log(newMessage);
-        let translatedMessageAPI = await translateTextAPI(newMessage, 'en', destLang.lang);
+        let translatedMessageAPI = await translateTextAPI(newMessage, 'en', destLangObj.lang);
         let translatedMessage = translatedMessageAPI.TranslatedText;
- 
+
         console.log(`Original Message: ${newMessage}\nTranslated Message: ${translatedMessage}`);
- 
-        // create the new message
+
+        // create the new message for UI chat window
         let data2 = {
             contactId: currentContactId[0],
             username: agentUsername,
             content: <p>{newMessage}</p>,
             translatedMessage: <p>{translatedMessage}</p>,
         };
- 
+
         addChat(prevMsg => [...prevMsg, data2]);
         setNewMessage("");
-        console.log("props.session:", props.session);
-        
-        
 
-        const session = retrieveValue(currentContactId[0]);
+        const session = getSession(currentContactId[0]);
         console.log("retrieved session:", session);
-        
-        function retrieveValue(key){
-            var value = "";
-            for(var obj in props.session) {
-                for(var item in props.session[obj]) {
-                    if(item === key) {
-                        value = props.session[obj][item];
-                        break;
-                    }
-                }
-            }
-            return value;
-        }
- 
+
         // ------------------- 🔊 Added Logic for Voice Mode -------------------
         try {
             if (mediaType[0] === "voice") {
                 console.log("Media type is voice, calling Polly API...");
- 
+
                 const pollyResponse = await fetch("https://nq47hkuui2.execute-api.us-east-1.amazonaws.com/test/polly", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         text: translatedMessage,
-                        languageCode: destLang.lang
+                        languageCode: destLangObj.lang
                     })
                 });
- 
+
                 const pollyData = await pollyResponse.json();
                 if (pollyData && pollyData.audio) {
                     console.log("Polly API success — sending audio message to Connect.");
 
-                    // ✅ Convert Base64 audio to Uint8Array before sending
+                    // Convert Base64 audio to Uint8Array before sending
                     const audioBytes = Uint8Array.from(atob(pollyData.audio), c => c.charCodeAt(0));
 
                     // Send the audio as voice message
@@ -257,14 +257,14 @@ const Chatroom = (props) => {
                     const audioElement = (
                         <audio controls src={`data:audio/mp3;base64,${pollyData.audio}`} />
                     );
- 
+
                     let voiceData = {
                         contactId: currentContactId[0],
                         username: agentUsername,
                         content: <p>{newMessage}</p>,
                         translatedMessage: audioElement,
                     };
- 
+
                     addChat(prevMsg => [...prevMsg, voiceData]);
                 } else {
                     console.warn("Polly API did not return audio, sending text fallback.");
@@ -280,39 +280,41 @@ const Chatroom = (props) => {
         }
         // ---------------------------------------------------------------------
     }
- 
+
     return (
-<div className="chatroom">
-<h3>
+        <div className="chatroom">
+            <h3>
                 Translate - (
-                    {languageTranslate.map(lang => {
-                        if(lang.contactId === currentContactId[0])
-                            return lang.lang
-                    })}
+                {languageTranslate.map(lang => {
+                    if (lang.contactId === currentContactId[0])
+                        return lang.lang;
+                    return null;
+                })}
                 ) {getKeyByValue(languageOptions)}
-</h3>
- 
+            </h3>
+
             <ul className="chats" ref={messageEl}>
                 {
                     Chats.map(chat => {
-                        if(chat.contactId === currentContactId[0])
-                            return <Message chat={chat} user={agentUsername} />
+                        if (chat.contactId === currentContactId[0])
+                            return <Message key={chat.Id || Math.random()} chat={chat} user={agentUsername} />;
+                        return null;
                     })
                 }
-</ul>
- 
+            </ul>
+
             <form className="input" onSubmit={handleSubmit} >
-<input
+                <input
                     ref={input}
                     maxLength="1024"
                     type="text"
                     value={newMessage}
                     onChange={e => setNewMessage(e.target.value)}
                 />
-<input type="submit" value="Submit" />
-</form>
-</div>
+                <input type="submit" value="Submit" />
+            </form>
+        </div>
     );
 };
- 
+
 export default Chatroom;
