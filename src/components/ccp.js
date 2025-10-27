@@ -256,8 +256,8 @@ const Ccp = () => {
     const [lang, setLang] = useState("");
     const [currentContactId] = useGlobalState('currentContactId');
     const [languageOptions] = useGlobalState('languageOptions');
-    // const [agentChatSessionState, setAgentChatSessionState] = useState([]);
-    const [agentChatSessionState, setAgentChatSessionState] = useState({});
+    const [agentChatSessionState, setAgentChatSessionState] = useState([]);
+    // const [agentChatSessionState, setAgentChatSessionState] = useState({});
     const [setRefreshChild] = useState([]);
     const [voiceIntervalId, setVoiceIntervalId] = useState(null);
     const lastApiResponseRef = useRef({});
@@ -444,10 +444,12 @@ const Ccp = () => {
                         console.log("CDEBUG ===> Interval started for contactId: ", contact.contactId);
                     } else {
                         console.log("CDEBUG ===> Non-voice contact. Skipping voice message fetch.");
-                        setAgentChatSessionState(state => ({
-                                                ...state,
-                                                [contact.contactId]: agentChatSession
+                        // setAgentChatSessionState(state => ({
+                        //                         ...state,
+                        //                         [contact.contactId]: agentChatSession
                                               }));
+                      // Save the session to props, this is required to send messages within the chatroom.js
+                        setAgentChatSessionState(agentChatSessionState => [...agentChatSessionState, {[contact.contactId] : agentChatSession}])
 
                     }
 
