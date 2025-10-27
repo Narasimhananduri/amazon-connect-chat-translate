@@ -447,7 +447,7 @@ const Ccp = () => {
                         // setAgentChatSessionState(state => ({
                         //                         ...state,
                         //                         [contact.contactId]: agentChatSession
-                                              }));
+                                              // }));
                       // Save the session to props, this is required to send messages within the chatroom.js
                         setAgentChatSessionState(agentChatSessionState => [...agentChatSessionState, {[contact.contactId] : agentChatSession}])
 
