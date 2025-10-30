@@ -882,25 +882,17 @@ useEffect(() => {
             return;
         }
 
-        // ✅ Correctly get the current agent and their contacts
         window.connect.agent((agent) => {
             const contacts = agent.getContacts() || [];
+            
+            // Simply find by contactId
+            const contact = contacts.find(c => c.contactId === currentContactId);
 
-            // Match your stored current contact ID
-            const activeContact = contacts.find(c =>
-                c.contactId === currentContactId &&
-                (c.getStatus().toLowerCase() === "connected" || c.getStatus().toLowerCase() === "accepted")
-            );
-
-            if (activeContact) {
-                console.log("CDEBUG ===> Found active contact:", activeContact.contactId);
-                playTtsIntoCall(activeContact, text);
+            if (contact) {
+                console.log("CDEBUG ===> Found contact:", contact.contactId);
+                playTtsIntoCall(contact, text);
             } else {
-                console.warn("CDEBUG ===> No active contact found. Contacts:", contacts.map(c => ({
-                    id: c.contactId,
-                    status: c.getStatus(),
-                    type: c.getType()
-                })));
+                console.warn("CDEBUG ===> No contact found with ID:", currentContactId);
                 alert('No active call found!');
             }
         });
@@ -909,6 +901,7 @@ useEffect(() => {
     sendBtn.addEventListener('click', handler);
     return () => sendBtn.removeEventListener('click', handler);
 }, [audioUrl, currentContactId]);
+
 
 
 
