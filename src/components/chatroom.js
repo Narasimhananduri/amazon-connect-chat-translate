@@ -443,7 +443,7 @@ const Chatroom = (props) => {
         console.log("✅ Lambda invoked successfully:", data);
 
          if (data.audioUrl) {
-                setGlobalState('audioUrl', data.audioUrl);
+                setAudioUrl('audioUrl', data.audioUrl);
                 console.log("Global state audioUrl updated:", data.audioUrl);
                     }      
       } 
