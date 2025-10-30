@@ -323,6 +323,7 @@ const Chatroom = (props) => {
   const [languageTranslate] = useGlobalState('languageTranslate');
   const [languageOptions] = useGlobalState('languageOptions');
   const [mediaType] = useGlobalState('mediaType'); // "chat" or "voice"
+  const [audioUrl] = useGlobalState('audioUrl'); // audio url
   const agentUsername = 'AGENT';
   const messageEl = useRef(null);
   const input = useRef(null);
