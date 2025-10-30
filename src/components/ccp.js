@@ -865,6 +865,7 @@ const Ccp = () => {
 
     // 🔹 Send Button Event (New)
     // 🔹 Send Button Event (Updated)
+// 🔹 Send Button Event (Fixed and Working)
 useEffect(() => {
     const sendBtn = document.getElementById('sendButton');
     if (!sendBtn) return;
@@ -881,22 +882,34 @@ useEffect(() => {
             return;
         }
 
-        // 🔸 Use Amazon Connect’s contact lookup by ID
-        const contact = window.connect.contact((c) => c.contactId === currentContactId);
-        const allContacts = window.connect.getContacts();
-        const activeContact = allContacts.find(c => c.contactId === currentContactId);
+        // ✅ Correctly get the current agent and their contacts
+        window.connect.agent((agent) => {
+            const contacts = agent.getContacts() || [];
 
-        if (activeContact && activeContact.getStatus() === "connected") {
-            playTtsIntoCall(activeContact, text);
-        } else {
-            console.warn("CDEBUG ===> No connected contact found. Available:", allContacts);
-            alert('No active call found!');
-        }
+            // Match your stored current contact ID
+            const activeContact = contacts.find(c =>
+                c.contactId === currentContactId &&
+                (c.getStatus().toLowerCase() === "connected" || c.getStatus().toLowerCase() === "accepted")
+            );
+
+            if (activeContact) {
+                console.log("CDEBUG ===> Found active contact:", activeContact.contactId);
+                playTtsIntoCall(activeContact, text);
+            } else {
+                console.warn("CDEBUG ===> No active contact found. Contacts:", contacts.map(c => ({
+                    id: c.contactId,
+                    status: c.getStatus(),
+                    type: c.getType()
+                })));
+                alert('No active call found!');
+            }
+        });
     };
 
     sendBtn.addEventListener('click', handler);
     return () => sendBtn.removeEventListener('click', handler);
 }, [audioUrl, currentContactId]);
+
 
 
     return (
