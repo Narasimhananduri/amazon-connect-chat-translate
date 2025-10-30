@@ -864,33 +864,40 @@ const Ccp = () => {
     }
 
     // 🔹 Send Button Event (New)
-    useEffect(() => {
-        const sendBtn = document.getElementById('sendButton');
-        if (!sendBtn) return;
+    // 🔹 Send Button Event (Updated)
+useEffect(() => {
+    const sendBtn = document.getElementById('sendButton');
+    if (!sendBtn) return;
 
-        const handler = async () => {
-            const text = document.getElementById('textInput').value;
-            if (!text) {
-                alert("Please enter some text!");
-                return;
-            }
+    const handler = async () => {
+        const text = document.getElementById('textInput').value;
+        if (!text) {
+            alert("Please enter some text!");
+            return;
+        }
 
-            window.connect.agent((agent) => {
-                const activeContacts = agent.getContacts();
-                const contact = Object.values(activeContacts).find(c => c.getStatus() === 'connected');
+        if (!currentContactId) {
+            alert("No active contact ID found in state!");
+            return;
+        }
 
-                if (contact) {
-                    playTtsIntoCall(contact, text);
-                } else {
-                    alert('No active call found!');
-                }
-            });
-        };
+        // 🔸 Use Amazon Connect’s contact lookup by ID
+        const contact = window.connect.contact((c) => c.contactId === currentContactId);
+        const allContacts = window.connect.getContacts();
+        const activeContact = allContacts.find(c => c.contactId === currentContactId);
 
-        sendBtn.addEventListener('click', handler);
+        if (activeContact && activeContact.getStatus() === "connected") {
+            playTtsIntoCall(activeContact, text);
+        } else {
+            console.warn("CDEBUG ===> No connected contact found. Available:", allContacts);
+            alert('No active call found!');
+        }
+    };
 
-        return () => sendBtn.removeEventListener('click', handler);
-    }, [audioUrl]);
+    sendBtn.addEventListener('click', handler);
+    return () => sendBtn.removeEventListener('click', handler);
+}, [audioUrl, currentContactId]);
+
 
     return (
         <main>
