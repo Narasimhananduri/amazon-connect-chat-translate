@@ -6,6 +6,7 @@ const { setGlobalState, useGlobalState } = createGlobalState({
     Chats: [],
     currentContactId: 'none',
     mediaType: '', // ✅ new global state
+    audioUrl: null,
     languageOptions: {
         'Afrikaans':'af',
         'Albanian':'sq',
@@ -103,5 +104,7 @@ export const setCurrentContactId = (contactId) => {
 export const setMediaType = (type) => {
     setGlobalState("mediaType", type);
 };
+
+export const setAudioUrl = (url) => setGlobalState('audioUrl', url);
 
 export { useGlobalState };
