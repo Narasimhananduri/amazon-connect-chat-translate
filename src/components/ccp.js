@@ -262,6 +262,8 @@ const Ccp = () => {
     const [voiceIntervalId, setVoiceIntervalId] = useState(null);
     const lastApiResponseRef = useRef({});
     const processedTranscriptsRef = useRef({});
+    const [audioUrl] = useGlobalState('audioUrl'); // audio url
+    console.log("audio url s3presigned in ccp main file: ", audioUrl);
 
     console.log("CDEBUG ===> Current language: ", lang);
     console.log("CDEBUG ===> Current contact ID: ", currentContactId);
