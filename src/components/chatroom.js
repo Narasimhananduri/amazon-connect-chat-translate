@@ -441,7 +441,14 @@ const Chatroom = (props) => {
  
         const data = await response.json();
         console.log("✅ Lambda invoked successfully:", data);
-      } else {
+
+         if (data.audioUrl) {
+                setGlobalState('audioUrl', data.audioUrl);
+                console.log("Global state audioUrl updated:", data.audioUrl);
+                    }      
+      } 
+         
+      else {
         console.log("Not a voice contact — skipping Lambda invocation.");
       }
     } catch (err) {
