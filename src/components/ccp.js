@@ -356,6 +356,11 @@ const Ccp = () => {
  
         const result = await response.json();
         console.log("CDEBUG ===> API Response:", result);
+      
+        if (result?.StreamArn) {
+                console.log("CDEBUG ===> Setting StreamArn globally:", result.StreamArn);
+                setStreamArn(result.StreamArn);
+            }
  
         if (!Array.isArray(result.Transcripts)) {
             console.warn("CDEBUG ===> Invalid or missing Transcripts array", result);
