@@ -108,4 +108,9 @@ export const setMediaType = (type) => {
 
 export const setAudioUrl = (url) => setGlobalState('audioUrl', url);
 
+// ✅ NEW FUNCTION for streamArn
+export const setStreamArn = (arn) => {
+    setGlobalState("streamArn", arn);
+};
+
 export { useGlobalState };
