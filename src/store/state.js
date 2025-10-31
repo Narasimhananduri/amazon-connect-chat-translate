@@ -7,6 +7,7 @@ const { setGlobalState, useGlobalState } = createGlobalState({
     currentContactId: 'none',
     mediaType: '', // ✅ new global state
     audioUrl: '',
+    streamArn: '', // ✅ new global state
     languageOptions: {
         'Afrikaans':'af',
         'Albanian':'sq',
