@@ -324,11 +324,13 @@ const Chatroom = (props) => {
   const [languageOptions] = useGlobalState('languageOptions');
   const [mediaType] = useGlobalState('mediaType'); // "chat" or "voice"
   const [audioUrl] = useGlobalState('audioUrl'); // audio url
+  const [streamArn] = useGlobalState('streamArn');
   const agentUsername = 'AGENT';
   const messageEl = useRef(null);
   const input = useRef(null);
  
   console.log("Current global mediaType:", mediaType);
+  console.log("streamarn in chatroom:", streamArn);
  
   // Helper to get language key from options
   function getKeyByValue(object) {
@@ -422,6 +424,7 @@ const Chatroom = (props) => {
           text: translatedMessage,
           languageCode: destLang.lang,
           contactId: currentContactId[0],
+          streamArn: streamArn,
         };
  
         console.log("Invoking Lambda with payload:", payload);
