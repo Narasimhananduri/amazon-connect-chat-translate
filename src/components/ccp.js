@@ -578,7 +578,7 @@ import {
     setMediaType,
     setStreamArn
 } from '../store/state';
-import { RTCSession } from "@rackspace-cc/connect-rtc"; // SEND BACK CODE
+// import { RTCSession } from "@rackspace-cc/connect-rtc"; // SEND BACK CODE
 
 Amplify.configure(awsconfig);
 
