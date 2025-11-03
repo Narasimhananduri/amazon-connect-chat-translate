@@ -12,6 +12,7 @@
 		"@babel/plugin-syntax-flow": "^7.24.1",
 		"@babel/plugin-transform-react-jsx": "^7.23.4",
 		"@craco/craco": "^7.1.0",
+		"@rackspace-cc/connect-rtc": "^1.1.4",
 		"@semantic-ui-react/craco-less": "^3.0.0",
 		"@svgr/webpack": "^8.1.0",
 		"@testing-library/dom": "^9.3.4",
