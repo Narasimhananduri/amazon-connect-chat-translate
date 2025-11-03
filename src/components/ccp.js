@@ -563,6 +563,7 @@
 
 
 import React, { useEffect, useState, useRef } from 'react';
+import { RTCSession } from "@rackspace-cc/connect-rtc"; // Import RTC support
 import { Grid } from 'semantic-ui-react';
 import { Amplify } from 'aws-amplify';
 import awsconfig from '../aws-exports';
