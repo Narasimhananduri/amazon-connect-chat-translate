@@ -5,7 +5,6 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import "amazon-connect-streams"; // This will make the `connect` available in the current context.
 import "amazon-connect-chatjs";
-import { RTCSession } from "@rackspace-cc/connect-rtc"; // Import RTC support
 
 // Import semantic
 import 'semantic-ui-less/semantic.less';
