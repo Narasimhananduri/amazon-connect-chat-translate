@@ -563,7 +563,6 @@
 
 
 import React, { useEffect, useState, useRef } from 'react';
-import { RTCSession } from "@rackspace-cc/connect-rtc"; // Import RTC support
 import { Grid } from 'semantic-ui-react';
 import { Amplify } from 'aws-amplify';
 import awsconfig from '../aws-exports';
@@ -805,7 +804,7 @@ const Ccp = () => {
                         setVoiceIntervalId(intervalId);
 
                         // SEND BACK CODE: Save RTCSession for this contact
-                        rtcSessionRefs.current[contact.contactId] = new RTCSession(agentChatSession);
+                        rtcSessionRefs.current[contact.contactId] = new window.RTCSession(agentChatSession);
 
                         // SEND BACK CODE: Play audio if available
                         if (audioUrl) {
