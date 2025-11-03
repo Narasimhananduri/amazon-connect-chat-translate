@@ -562,6 +562,7 @@
 
 
 
+/* global connect, RTCSession */
 import React, { useEffect, useState, useRef } from 'react';
 import { Grid } from 'semantic-ui-react';
 import { Amplify } from 'aws-amplify';
@@ -578,7 +579,6 @@ import {
     setMediaType,
     setStreamArn
 } from '../store/state';
-// import { RTCSession } from "@rackspace-cc/connect-rtc"; // SEND BACK CODE
 
 Amplify.configure(awsconfig);
 
@@ -593,16 +593,16 @@ const Ccp = () => {
     const [voiceIntervalId, setVoiceIntervalId] = useState(null);
     const lastApiResponseRef = useRef({});
     const processedTranscriptsRef = useRef({});
-    const [audioUrl] = useGlobalState('audioUrl'); // audio url
+    const [audioUrl] = useGlobalState('audioUrl'); 
     const [streamArn] = useGlobalState('streamArn');
 
-    const rtcSessionRefs = useRef({}); // SEND BACK CODE: store RTCSession per contact
+    const rtcSessionRefs = useRef({}); 
 
     console.log("audio url s3presigned in ccp main file: ", audioUrl);
     console.log("CDEBUG ===> Current language: ", lang);
     console.log("CDEBUG ===> Current contact ID: ", currentContactId);
 
-    // SEND BACK CODE: Inject audio into live call
+    // ========== PLAY AUDIO TO CUSTOMER ==========
     const playAudioToCustomer = async (contactId, audioUrl) => {
         if (!contactId || !audioUrl) return;
         const rtcSession = rtcSessionRefs.current[contactId];
@@ -612,16 +612,13 @@ const Ccp = () => {
         }
 
         try {
-            // Fetch the audio file as blob
             const response = await fetch(audioUrl);
             const audioBlob = await response.blob();
 
-            // Convert blob to AudioBuffer
             const arrayBuffer = await audioBlob.arrayBuffer();
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-            // Create a MediaStream from the AudioBuffer
             const source = audioContext.createBufferSource();
             source.buffer = audioBuffer;
 
@@ -629,7 +626,6 @@ const Ccp = () => {
             source.connect(dest);
             source.start();
 
-            // Add this audio track to the live call
             rtcSession.addOutboundTrack(dest.stream.getAudioTracks()[0]);
             console.log("CDEBUG ===> Audio sent to customer for contact:", contactId);
         } catch (err) {
@@ -637,6 +633,7 @@ const Ccp = () => {
         }
     };
 
+    // ========== CHAT EVENT HANDLERS ==========
     function getEvents(contact, agentChatSession) {
         console.log("CDEBUG ===> Getting events for contact: ", contact.contactId);
         contact.getAgentConnection().getMediaController().then(controller => {
@@ -701,11 +698,12 @@ const Ccp = () => {
         addChat(prevMsg => [...prevMsg, data2]);
     }
 
+    // ========== FETCH VOICE MESSAGES ==========
     const fetchVoiceMessages = async (contactId) => {
         try {
             console.log("CDEBUG ===> Fetching voice messages for contactId:", contactId);
 
-            const apiUrl = `https://f7505y5ead.execute-api.us-east-1.amazonaws.com/test/getTranscript?contactId=${contactId}`;
+            const apiUrl = `https://f7505y5ead.execute-api.us-east-1.amazonaws.com/test/getTranscript?contactId=${contactId}`; 
             const response = await fetch(apiUrl);
             if (!response.ok) {
                 console.error(`CDEBUG ===> Fetch failed with status: ${response.status} ${response.statusText}`);
@@ -767,6 +765,7 @@ const Ccp = () => {
         return mediaType === 'voice';
     };
 
+    // ========== SUBSCRIBE EVENTS ==========
     function subscribeConnectEvents() {
         console.log("CDEBUG ===> Subscribing to Connect Contact Events");
 
@@ -780,16 +779,12 @@ const Ccp = () => {
             window.connect.contact(contact => {
                 contact.onConnecting(() => {
                     console.log("CDEBUG ===> onConnecting() >> contactId: ", contact.contactId);
-                    let contactAttributes = contact.getAttributes();
-                    console.log("CDEBUG ===> contactAttributes: ", JSON.stringify(contactAttributes));
-                    let contactQueue = contact.getQueue();
-                    console.log("CDEBUG ===> contactQueue: ", contactQueue);
                 });
 
                 contact.onAccepted(async () => {
                     console.log("CDEBUG ===> onAccepted: ", contact);
 
-                    const cnn = contact.getConnections().find(cnn => cnn.getType() === window.connect.ConnectionType.AGENT);
+                    const cnn = contact.getConnections().find(c => c.getType() === window.connect.ConnectionType.AGENT);
                     const agentChatSession = await cnn.getMediaController();
                     setCurrentContactId(contact.contactId);
 
@@ -800,19 +795,38 @@ const Ccp = () => {
                             console.log("CDEBUG ===> Polling for voice messages. ContactId: ", contact.contactId);
                             fetchVoiceMessages(contact.contactId);
                         }, 3000);
-
                         setVoiceIntervalId(intervalId);
 
-                        // SEND BACK CODE: Save RTCSession for this contact
-                        rtcSessionRefs.current[contact.contactId] = new window.RTCSession(agentChatSession);
+                        // ✅ Create RTC session from softphone media info
+                        const agentConn = contact.getAgentConnection();
+                        const mediaInfo = agentConn.getSoftphoneMediaInfo();
+                        if (mediaInfo) {
+                            const rtcConfig =
+                                mediaInfo.webcallConfig || JSON.parse(mediaInfo.callConfigJson || "{}");
 
-                        // SEND BACK CODE: Play audio if available
+                            rtcSessionRefs.current[contact.contactId] = new window.RTCSession(
+                                rtcConfig.signalingEndpoint,
+                                rtcConfig.iceServers,
+                                mediaInfo.callContextToken,
+                                console
+                            );
+                            console.log("RTC session created for contact:", contact.contactId);
+                        } else {
+                            console.warn("No mediaInfo available for contact:", contact.contactId);
+                        }
+
+                        // ✅ If audio available, wait until RTC ready
                         if (audioUrl) {
-                            playAudioToCustomer(contact.contactId, audioUrl);
+                            const waitInterval = setInterval(() => {
+                                if (rtcSessionRefs.current[contact.contactId]) {
+                                    playAudioToCustomer(contact.contactId, audioUrl);
+                                    clearInterval(waitInterval);
+                                }
+                            }, 1000);
                         }
 
                     } else {
-                        setAgentChatSessionState(agentChatSessionState => [...agentChatSessionState, { [contact.contactId]: agentChatSession }])
+                        setAgentChatSessionState(prev => [...prev, { [contact.contactId]: agentChatSession }])
                     }
 
                     const attrLang = contact.getAttributes().x_lang?.value;
@@ -831,7 +845,7 @@ const Ccp = () => {
                 contact.onConnected(async () => {
                     console.log("CDEBUG ===> onConnected() >> contactId: ", contact.contactId);
                     if (!isVoiceContact(contact)) {
-                        const cnn = contact.getConnections().find(cnn => cnn.getType() === window.connect.ConnectionType.AGENT);
+                        const cnn = contact.getConnections().find(c => c.getType() === window.connect.ConnectionType.AGENT);
                         const agentChatSession = await cnn.getMediaController();
                         getEvents(contact, agentChatSession);
                     }
@@ -852,22 +866,34 @@ const Ccp = () => {
                     }
                     delete lastApiResponseRef.current[contact.contactId];
                     delete processedTranscriptsRef.current[contact.contactId];
-                    delete rtcSessionRefs.current[contact.contactId]; // SEND BACK CODE cleanup
+                    delete rtcSessionRefs.current[contact.contactId];
                 });
             });
 
         } else {
             setTimeout(function () { subscribeConnectEvents(); }, 3000);
         }
-    };
+    }
 
-    // SEND BACK CODE: Watch global audioUrl and trigger playback for current voice contact
+    // ========== WATCH AUDIO URL ==========
     useEffect(() => {
         if (audioUrl && currentContactId) {
-            playAudioToCustomer(currentContactId, audioUrl);
+            const hasRtc = !!rtcSessionRefs.current[currentContactId];
+            if (hasRtc) {
+                playAudioToCustomer(currentContactId, audioUrl);
+            } else {
+                console.log("RTC session not ready yet, waiting...");
+                const waitInterval = setInterval(() => {
+                    if (rtcSessionRefs.current[currentContactId]) {
+                        playAudioToCustomer(currentContactId, audioUrl);
+                        clearInterval(waitInterval);
+                    }
+                }, 1000);
+            }
         }
-    }, [audioUrl]);
+    }, [audioUrl, currentContactId]);
 
+    // ========== INITIALIZE CCP ==========
     useEffect(() => {
         const connectUrl = process.env.REACT_APP_CONNECT_INSTANCE_URL;
 
@@ -905,6 +931,3 @@ const Ccp = () => {
 };
 
 export default Ccp;
-
-
-
