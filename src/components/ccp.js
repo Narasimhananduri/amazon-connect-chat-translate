@@ -882,14 +882,77 @@ const playAudioToCustomer = async (contactId, audioUrl) => {
 
                 });
 
+                // contact.onConnected(async () => {
+                //     console.log("CDEBUG ===> onConnected() >> contactId: ", contact.contactId);
+                //     if (!isVoiceContact(contact)) {
+                //         const cnn = contact.getConnections().find(c => c.getType() === window.connect.ConnectionType.AGENT);
+                //         const agentChatSession = await cnn.getMediaController();
+                //         getEvents(contact, agentChatSession);
+                //     }
+                // });
                 contact.onConnected(async () => {
-                    console.log("CDEBUG ===> onConnected() >> contactId: ", contact.contactId);
-                    if (!isVoiceContact(contact)) {
-                        const cnn = contact.getConnections().find(c => c.getType() === window.connect.ConnectionType.AGENT);
-                        const agentChatSession = await cnn.getMediaController();
-                        getEvents(contact, agentChatSession);
-                    }
-                });
+
+                  console.log("CDEBUG ===> onConnected() >> contactId: ", contact.contactId);
+               
+                  // ✅ Handle Voice Contacts
+              
+                  if (isVoiceContact(contact)) {
+              
+                      try {
+              
+                          const agentConn = contact.getAgentConnection();
+              
+                          const mediaController = await agentConn.getMediaController();
+               
+                          if (mediaController && mediaController.getPeerConnection) {
+              
+                              const pc = mediaController.getPeerConnection();
+              
+                              if (pc) {
+              
+                                  rtcSessionRefs.current[contact.contactId] = pc;
+              
+                                  console.log("✅ [DEBUG] PeerConnection now ready for contact:", contact.contactId, pc);
+              
+                              } else {
+              
+                                  console.warn("⚠️ [DEBUG] PeerConnection still not initialized in onConnected.");
+              
+                              }
+              
+                          } else {
+              
+                              console.warn("⚠️ [DEBUG] MediaController or getPeerConnection() not available yet.");
+              
+                          }
+              
+                      } catch (err) {
+              
+                          console.error("❌ [DEBUG] Failed to obtain PeerConnection onConnected:", err);
+              
+                      }
+              
+                  }
+               
+                  // ✅ Handle Chat Contacts (keep your original working code)
+              
+                  if (!isVoiceContact(contact)) {
+              
+                      const cnn = contact.getConnections().find(
+              
+                          c => c.getType() === window.connect.ConnectionType.AGENT
+              
+                      );
+              
+                      const agentChatSession = await cnn.getMediaController();
+              
+                      getEvents(contact, agentChatSession);
+              
+                  }
+              
+              });
+
+ 
 
                 contact.onEnded(() => {
                     console.log("CDEBUG ===> onEnded() >> contactId: ", contact.contactId);
