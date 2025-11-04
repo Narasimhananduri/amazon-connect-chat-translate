@@ -836,16 +836,24 @@ const playAudioToCustomer = async (contactId, audioUrl) => {
                         setVoiceIntervalId(intervalId);
 
                         // ✅ Create RTC session from softphone media info
-                        const agentConn = contact.getAgentConnection();
-                        const mediaController = await agentConn.getMediaController();
-                         
-                        if (mediaController && mediaController._getPeerConnection) {
-                            const pc = mediaController._getPeerConnection();
-                            rtcSessionRefs.current[contact.contactId] = pc;
-                            console.log("✅ Got official peer connection for contact:", contact.contactId);
-                        } else {
-                            console.warn("⚠️ Could not retrieve peer connection for contact:", contact.contactId);
-                        }
+                       // ✅ Create RTC session using the official Amazon Connect API
+                          const agentConn = contact.getAgentConnection();
+                          if (agentConn && agentConn.getMediaController) {
+                              try {
+                                  const mediaController = await agentConn.getMediaController();
+                                  if (mediaController && mediaController.getPeerConnection) {
+                                      const pc = mediaController.getPeerConnection();
+                                      rtcSessionRefs.current[contact.contactId] = pc;
+                                      console.log("✅ [DEBUG] Stored official PeerConnection for contact:", contact.contactId, pc);
+                                  } else {
+                                      console.warn("⚠️ [DEBUG] getPeerConnection() not yet available on mediaController.");
+                                  }
+                              } catch (err) {
+                                  console.error("❌ [DEBUG] Failed to obtain PeerConnection from mediaController:", err);
+                              }
+                          } else {
+                              console.warn("⚠️ [DEBUG] No valid agent connection or media controller available for contact:", contact.contactId);
+                          }
 
                         // ✅ If audio available, wait until RTC ready
                         if (audioUrl) {
