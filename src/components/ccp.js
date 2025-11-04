@@ -603,36 +603,74 @@ const Ccp = () => {
     console.log("CDEBUG ===> Current contact ID: ", currentContactId);
 
     // ========== PLAY AUDIO TO CUSTOMER ==========
-    const playAudioToCustomer = async (contactId, audioUrl) => {
-        if (!contactId || !audioUrl) return;
-        const rtcSession = rtcSessionRefs.current[contactId];
-        if (!rtcSession) {
-            console.warn("No RTC session found for contact:", contactId);
+     // ========== PLAY AUDIO TO CUSTOMER (Official WebRTC-compatible) ==========
+const playAudioToCustomer = async (contactId, audioUrl) => {
+    if (!contactId || !audioUrl) {
+        console.warn("⚠️ playAudioToCustomer: Missing contactId or audioUrl");
+        return;
+    }
+ 
+    console.log(`🎧 [DEBUG] Starting playAudioToCustomer for contactId: ${contactId}`);
+    console.log(`🎧 [DEBUG] Using audio URL: ${audioUrl}`);
+ 
+    // Get the RTCPeerConnection object for this contact
+    const pc = rtcSessionRefs.current[contactId];
+    if (!pc) {
+        console.warn("⚠️ [DEBUG] No RTCPeerConnection found for contact:", contactId);
+        return;
+    }
+ 
+    try {
+        // 1️⃣ Fetch audio from S3 (pre-signed URL)
+        console.log("🎧 [DEBUG] Fetching audio blob...");
+        const response = await fetch(audioUrl);
+        if (!response.ok) {
+            console.error("❌ [DEBUG] Failed to fetch audio URL:", response.status, response.statusText);
             return;
         }
-
-        try {
-            const response = await fetch(audioUrl);
-            const audioBlob = await response.blob();
-
-            const arrayBuffer = await audioBlob.arrayBuffer();
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-            const source = audioContext.createBufferSource();
-            source.buffer = audioBuffer;
-
-            const dest = audioContext.createMediaStreamDestination();
-            source.connect(dest);
-            source.start();
-
-            rtcSession.addOutboundTrack(dest.stream.getAudioTracks()[0]);
-            console.log("CDEBUG ===> Audio sent to customer for contact:", contactId);
-        } catch (err) {
-            console.error("CDEBUG ===> Failed to play audio to customer:", err);
+ 
+        const audioBlob = await response.blob();
+        const arrayBuffer = await audioBlob.arrayBuffer();
+ 
+        // 2️⃣ Decode audio using Web Audio API
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        console.log("🎧 [DEBUG] Audio decoded successfully, duration:", audioBuffer.duration, "seconds");
+ 
+        // 3️⃣ Create a MediaStream from the decoded audio
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+ 
+        const dest = audioContext.createMediaStreamDestination();
+        source.connect(dest);
+ 
+        // 4️⃣ Find the outbound audio sender in the peer connection
+        const senders = pc.getSenders();
+        console.log("🎧 [DEBUG] Current senders:", senders);
+ 
+        const audioSender = senders.find(s => s.track && s.track.kind === 'audio');
+        if (!audioSender) {
+            console.warn("⚠️ [DEBUG] No audio sender found to replace track for contact:", contactId);
+            return;
         }
-    };
-
+ 
+        // 5️⃣ Replace the outgoing microphone track with our generated audio
+        console.log("🎧 [DEBUG] Replacing outgoing audio track with TTS audio for contact:", contactId);
+        await audioSender.replaceTrack(dest.stream.getAudioTracks()[0]);
+ 
+        // 6️⃣ Start playing the audio
+        source.start();
+        console.log("✅ [DEBUG] TTS audio started playing for contact:", contactId);
+ 
+        // Optional: restore mic or handle cleanup after playback
+        source.onended = async () => {
+            console.log("🎧 [DEBUG] TTS playback ended for contact:", contactId);
+        };
+ 
+    } catch (err) {
+        console.error("❌ [DEBUG] Error in playAudioToCustomer:", err);
+    }
+};
     // ========== CHAT EVENT HANDLERS ==========
     function getEvents(contact, agentChatSession) {
         console.log("CDEBUG ===> Getting events for contact: ", contact.contactId);
@@ -799,20 +837,14 @@ const Ccp = () => {
 
                         // ✅ Create RTC session from softphone media info
                         const agentConn = contact.getAgentConnection();
-                        const mediaInfo = agentConn.getSoftphoneMediaInfo();
-                        if (mediaInfo) {
-                            const rtcConfig =
-                                mediaInfo.webcallConfig || JSON.parse(mediaInfo.callConfigJson || "{}");
-
-                            rtcSessionRefs.current[contact.contactId] = new window.RTCSession(
-                                rtcConfig.signalingEndpoint,
-                                rtcConfig.iceServers,
-                                mediaInfo.callContextToken,
-                                console
-                            );
-                            console.log("RTC session created for contact:", contact.contactId);
+                        const mediaController = await agentConn.getMediaController();
+                         
+                        if (mediaController && mediaController._getPeerConnection) {
+                            const pc = mediaController._getPeerConnection();
+                            rtcSessionRefs.current[contact.contactId] = pc;
+                            console.log("✅ Got official peer connection for contact:", contact.contactId);
                         } else {
-                            console.warn("No mediaInfo available for contact:", contact.contactId);
+                            console.warn("⚠️ Could not retrieve peer connection for contact:", contact.contactId);
                         }
 
                         // ✅ If audio available, wait until RTC ready
@@ -875,16 +907,18 @@ const Ccp = () => {
         }
     }
 
-    // ========== WATCH AUDIO URL ==========
+        // ========== WATCH AUDIO URL ==========
     useEffect(() => {
         if (audioUrl && currentContactId) {
             const hasRtc = !!rtcSessionRefs.current[currentContactId];
+            console.log("CDEBUG ===> Audio URL updated. RTC session exists?", hasRtc);
             if (hasRtc) {
                 playAudioToCustomer(currentContactId, audioUrl);
             } else {
                 console.log("RTC session not ready yet, waiting...");
                 const waitInterval = setInterval(() => {
                     if (rtcSessionRefs.current[currentContactId]) {
+                        console.log("RTC session became ready — triggering TTS playback.");
                         playAudioToCustomer(currentContactId, audioUrl);
                         clearInterval(waitInterval);
                     }
